@@ -22,6 +22,7 @@ type model struct {
 	// panels
 	commands   listView
 	detailView detailsView
+	searchView searchView
 	help       help.Model
 
 	currentMode mode
@@ -53,6 +54,7 @@ func newModel(ctx context.Context, manager manager, logger *slog.Logger) (*model
 		keys:           defaultKeyMap,
 		commands:       newListView("Commands", cmds),
 		detailView:     detail,
+		searchView:     newSearchView(),
 		help:           help.New(),
 		currentMode:    navigationMode,
 		logger:         logger,
@@ -86,17 +88,29 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *model) View() string {
 	return docStyle.Render(
-		borderStyle.Render(
-			lipgloss.JoinVertical(
-				lipgloss.Top,
-				m.titleStyle.Render(title),
-				borderStyle.Render(lipgloss.JoinHorizontal(
+		lipgloss.JoinVertical(
+			lipgloss.Top,
+			containerStyle.Render(
+				lipgloss.JoinHorizontal(
 					lipgloss.Left,
-					m.commands.View(),
-					m.detailView.View(),
-				)),
-				helpStyle.Render(m.help.View(m.keys)),
-			)))
+					// 1st column
+					borderStyle.BorderRight(true).Render(
+						lipgloss.JoinVertical(
+							lipgloss.Top,
+							m.searchView.View(),
+							containerStyle.Render(m.commands.View()),
+						),
+					),
+					// 2nd column
+					lipgloss.JoinVertical(
+						lipgloss.Top,
+						m.titleStyle.Render(title),
+						m.detailView.View(),
+					)),
+			),
+			helpStyle.Render(m.help.View(m.keys)),
+		),
+	)
 }
 
 func (m *model) Init() tea.Cmd {
@@ -105,26 +119,27 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) updateComponentsDimensions(width, height int) {
-	m.logger.Debug("updating components dimensions")
-	w, _ := relativeDimensions(width, 0, .985, 0)
-	// title
-	m.titleStyle = m.titleStyle.Width(w)
-
 	// help
-	m.help.Width = w
+	m.help.Width = width
 
-	w, h := relativeDimensions(width, height, .33, .90)
 	// command explorer
+	w, h := relativeDimensions(width, height, .20, .85)
 	m.commands.SetSize(w, h)
 
+	// search bar
+	m.searchView.SetWidth(w)
+
+	w, h = relativeDimensions(width, height, .75, .85)
+	// title
+	m.titleStyle = m.titleStyle.Width(w)
 	// detail view
-	w, h = relativeDimensions(width, height, .80, .90)
 	m.detailView.SetSize(w, h)
 }
 
 func (m *model) inputRouter(msg tea.KeyMsg) tea.Cmd {
 	switch m.currentMode {
 	case searchMode:
+		return m.handleSearchInput(msg)
 	case createMode:
 	case editMode:
 	case detailMode:
@@ -141,6 +156,10 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, m.keys.quit):
 		return tea.Quit
+	case key.Matches(msg, m.keys.search):
+		return changeMode(searchMode, func(m *model) {
+			m.searchView.Focus()
+		})
 	case key.Matches(msg, m.keys.enter):
 		command, err := m.commands.selectedItem()
 		if err != nil {
@@ -174,7 +193,9 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		m.detailView.SetContent(*command.cmd)
+		if err := m.detailView.SetContent(*command.cmd); err != nil {
+			m.logger.Error("error setting detail view content", slog.Any("error", err))
+		}
 	}
 	return cmd
 }
@@ -186,6 +207,22 @@ func (m *model) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 		return changeMode(navigationMode, nil)
 	default:
 		// NOTE: nothing for the moment
+	}
+	return cmd
+}
+
+func (m *model) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	switch {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, nil)
+	case key.Matches(msg, m.keys.enter):
+		m.logger.Debug("search", slog.String("terms", m.searchView.Content()))
+		// TODO: fetch the commands and load them in commands view.
+		// TODO: think on how to get all the commands again
+		return changeMode(navigationMode, nil)
+	default:
+		m.searchView, cmd = m.searchView.Update(msg)
 	}
 	return cmd
 }

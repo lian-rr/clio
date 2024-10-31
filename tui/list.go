@@ -26,8 +26,10 @@ func newListView(title string, commands []command.Command) listView {
 	view := list.New(items, list.NewDefaultDelegate(), 0, 0)
 	view.Title = title
 	view.DisableQuitKeybindings()
+	view.SetShowTitle(false)
 	view.SetFilteringEnabled(false)
 	view.SetShowHelp(false)
+	view.SetShowStatusBar(false)
 
 	return listView{
 		list: view,
@@ -41,7 +43,7 @@ func (l *listView) Update(msg tea.Msg) (listView, tea.Cmd) {
 }
 
 func (l listView) View() string {
-	return containerStyle.Render(l.list.View())
+	return l.list.View()
 }
 
 func (l *listView) SetSize(w, h int) {

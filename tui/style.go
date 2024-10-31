@@ -8,24 +8,28 @@ var (
 )
 
 var (
-	docStyle = lipgloss.NewStyle().
+	borderStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color(borderColor))
+
+	docStyle = borderStyle.
 			Margin(1, 2)
 
 	titleStyle = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).
 			Bold(true).
-			Foreground(lipgloss.Color(primaryColor))
-
-	borderStyle = lipgloss.NewStyle().
+			BorderBottom(true).
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(borderColor))
+			BorderForeground(lipgloss.Color(borderColor)).
+			Foreground(lipgloss.Color(primaryColor))
 
 	helpStyle = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).
-			Padding(0, 2, 0)
+			Padding(0, 2, 0).
+			MarginTop(1)
 
 	containerStyle = lipgloss.NewStyle().
-			Padding(0, 2, 0)
+			Padding(1, 2, 0)
 
 	infoStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).

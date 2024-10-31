@@ -44,12 +44,6 @@ func newDetailsView(logger *slog.Logger) detailsView {
 		return data
 	}
 
-	vp := viewport.New(0, 0)
-	vp.Style = lipgloss.NewStyle().
-		BorderLeft(true).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color(borderColor))
-
 	infoTable := table.New().
 		Border(lipgloss.HiddenBorder()).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -70,7 +64,7 @@ func newDetailsView(logger *slog.Logger) detailsView {
 	return detailsView{
 		infoTable:   infoTable,
 		paramsTable: params,
-		view:        vp,
+		view:        viewport.New(0, 0),
 		logger:      logger,
 		titleStyle:  titleStyle,
 		contentStyle: lipgloss.NewStyle().
@@ -124,5 +118,4 @@ func (dc *detailsView) SetSize(width, height int) {
 	w, _ := relativeDimensions(width, height, .50, .50)
 
 	dc.paramsTable.Width(w)
-	dc.logger.Debug("size set")
 }
