@@ -13,7 +13,7 @@ type searchView struct {
 
 func newSearchView() searchView {
 	input := textinput.New()
-	input.Placeholder = "type / to search"
+	input.Placeholder = "type something"
 	input.TextStyle = lipgloss.NewStyle().
 		Italic(true).
 		Foreground(lipgloss.AdaptiveColor{
@@ -44,6 +44,14 @@ func (s *searchView) View() string {
 
 func (s *searchView) Focus() {
 	s.input.Focus()
+}
+
+func (s *searchView) Unfocus() {
+	s.input.Blur()
+}
+
+func (s *searchView) Reset() {
+	s.input.Reset()
 }
 
 func (s *searchView) Content() string {

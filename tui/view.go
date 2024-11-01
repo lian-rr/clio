@@ -3,11 +3,14 @@ package tui
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/lian_rr/keep/command"
 )
 
 const title = "KEEP"
@@ -20,44 +23,39 @@ type model struct {
 	logger *slog.Logger
 
 	// panels
-	commands   listView
-	detailView detailsView
-	searchView searchView
-	help       help.Model
+	commandsView listView
+	detailView   detailsView
+	searchView   searchView
+	help         help.Model
 
 	currentMode mode
+	searching   bool
 
 	// styles
 	titleStyle lipgloss.Style
 }
 
 func newModel(ctx context.Context, manager manager, logger *slog.Logger) (*model, error) {
-	cmds, err := manager.GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	detail := newDetailsView(logger)
-	if len(cmds) > 0 {
-		cmd, err := manager.GetOne(ctx, cmds[0].ID.String())
-		if err != nil {
-			return nil, err
-		}
-		cmds[0] = cmd
-		detail.SetContent(cmds[0])
-	}
-
 	model := model{
 		ctx:            ctx,
 		commandManager: manager,
 		titleStyle:     titleStyle,
 		keys:           defaultKeyMap,
-		commands:       newListView("Commands", cmds),
-		detailView:     detail,
+		commandsView:   newListView(),
+		detailView:     newDetailsView(logger),
 		searchView:     newSearchView(),
 		help:           help.New(),
 		currentMode:    navigationMode,
 		logger:         logger,
+	}
+
+	cmds, err := model.fechCommands()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := model.setContent(cmds); err != nil {
+		return nil, err
 	}
 
 	return &model, nil
@@ -98,7 +96,7 @@ func (m *model) View() string {
 						lipgloss.JoinVertical(
 							lipgloss.Top,
 							m.searchView.View(),
-							containerStyle.Render(m.commands.View()),
+							containerStyle.Render(m.commandsView.View()),
 						),
 					),
 					// 2nd column
@@ -124,7 +122,7 @@ func (m *model) updateComponentsDimensions(width, height int) {
 
 	// command explorer
 	w, h := relativeDimensions(width, height, .20, .85)
-	m.commands.SetSize(w, h)
+	m.commandsView.SetSize(w, h)
 
 	// search bar
 	m.searchView.SetWidth(w)
@@ -161,9 +159,8 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 			m.searchView.Focus()
 		})
 	case key.Matches(msg, m.keys.enter):
-		command, err := m.commands.selectedItem()
-		if err != nil {
-			m.logger.Error("error getting selected command", slog.Any("error", err))
+		command, ok := m.commandsView.selectedItem()
+		if !ok {
 			break
 		}
 
@@ -173,11 +170,21 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
-	default:
-		m.commands, cmd = m.commands.Update(msg)
-		command, err := m.commands.selectedItem()
+	case key.Matches(msg, m.keys.discardSearch):
+		m.searchView.Reset()
+		cmds, err := m.fechCommands()
 		if err != nil {
-			m.logger.Error("error getting selected item", slog.Any("error", err))
+			m.logger.Error("error getting all commands",
+				slog.Any("error", err),
+			)
+			break
+		}
+
+		m.setContent(cmds)
+	default:
+		m.commandsView, cmd = m.commandsView.Update(msg)
+		command, ok := m.commandsView.selectedItem()
+		if !ok {
 			break
 		}
 
@@ -212,19 +219,85 @@ func (m *model) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (m *model) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
+	getAll := func() {
+		cmds, err := m.fechCommands()
+		if err != nil {
+			m.logger.Error("error getting all commands",
+				slog.Any("error", err),
+			)
+			return
+		}
+
+		m.setContent(cmds)
+	}
+
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, m.keys.back):
 		return changeMode(navigationMode, nil)
+	case key.Matches(msg, m.keys.discardSearch):
+		m.searchView.Reset()
+		getAll()
+		return changeMode(navigationMode, nil)
 	case key.Matches(msg, m.keys.enter):
-		m.logger.Debug("search", slog.String("terms", m.searchView.Content()))
-		// TODO: fetch the commands and load them in commands view.
-		// TODO: think on how to get all the commands again
+		m.searchView.Unfocus()
 		return changeMode(navigationMode, nil)
 	default:
 		m.searchView, cmd = m.searchView.Update(msg)
+
+		terms := m.searchView.Content()
+		if len(terms) >= 3 {
+			m.searching = true
+			cmds, err := m.searchCommands(terms)
+			if err != nil {
+				m.logger.Error("error searching for commands",
+					slog.String("terms", terms),
+					slog.Any("error", err),
+				)
+				break
+			}
+			m.setContent(cmds)
+		} else if m.searching && len(terms) == 0 {
+			m.searching = false
+			getAll()
+		}
 	}
 	return cmd
+}
+
+func (m *model) setContent(cmds []command.Command) error {
+	m.commandsView.SetContent(cmds)
+	if len(cmds) > 0 {
+		cmd, err := m.fechFullCommand(cmds[0].ID.String())
+		if err != nil {
+			return err
+		}
+		cmds[0] = cmd
+		m.detailView.SetContent(cmd)
+	}
+
+	return nil
+}
+
+func (m *model) fechCommands() ([]command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*300)
+	defer cancel()
+
+	return m.commandManager.GetAll(ctx)
+}
+
+func (m *model) searchCommands(term string) ([]command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*300)
+	defer cancel()
+
+	return m.commandManager.Search(ctx, term)
+}
+
+func (m *model) fechFullCommand(id string) (command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	return m.commandManager.GetOne(ctx, id)
 }
 
 func relativeDimensions(w, h int, pw, ph float32) (width, height int) {

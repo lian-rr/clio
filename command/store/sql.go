@@ -150,7 +150,7 @@ func (s *Sql) GetCommandByID(ctx context.Context, id uuid.UUID) (command.Command
 
 // SearchCommand returns a list of the commands with the matching term.
 func (s *Sql) SearchCommand(ctx context.Context, term string) ([]command.Command, error) {
-	rows, err := s.db.QueryContext(ctx, sqlite.SearchCommandQuery, term)
+	rows, err := s.db.QueryContext(ctx, sqlite.SearchCommandQuery, fmt.Sprintf("%s*", term))
 	if err != nil {
 		return nil, err
 	}

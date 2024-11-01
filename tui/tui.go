@@ -13,6 +13,7 @@ import (
 type manager interface {
 	GetAll(context.Context) ([]command.Command, error)
 	GetOne(context.Context, string) (command.Command, error)
+	Search(context.Context, string) ([]command.Command, error)
 }
 
 // Tui contains the TUI logic.

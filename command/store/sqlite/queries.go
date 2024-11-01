@@ -104,5 +104,5 @@ const (
 	INNER JOIN commands_fts fts 
 		ON c.id = fts.id
 	WHERE commands_fts MATCH ?
-	ORDER BY bm25(commands_fts, 0, 10, 5, 2)`
+	ORDER BY bm25(commands_fts, 0, 15, 10, 5)`
 )

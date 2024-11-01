@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"errors"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -13,18 +11,8 @@ type listView struct {
 	list list.Model
 }
 
-func newListView(title string, commands []command.Command) listView {
-	items := make([]list.Item, 0, len(commands))
-	for _, cmd := range commands {
-		items = append(items, &listItem{
-			title: cmd.Name,
-			desc:  cmd.Description,
-			cmd:   &cmd,
-		})
-	}
-
-	view := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	view.Title = title
+func newListView() listView {
+	view := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	view.DisableQuitKeybindings()
 	view.SetShowTitle(false)
 	view.SetFilteringEnabled(false)
@@ -50,13 +38,30 @@ func (l *listView) SetSize(w, h int) {
 	l.list.SetSize(w, h)
 }
 
-func (l *listView) selectedItem() (*listItem, error) {
+func (l *listView) selectedItem() (*listItem, bool) {
 	command, ok := l.list.SelectedItem().(*listItem)
 	if !ok {
-		return nil, errors.New("invalid item selected")
+		return nil, false
 	}
 
-	return command, nil
+	return command, true
+}
+
+func (l *listView) SetContent(cmds []command.Command) {
+	l.list.SetItems(toListItem(cmds))
+}
+
+func toListItem(cmds []command.Command) []list.Item {
+	items := make([]list.Item, 0, len(cmds))
+	for _, cmd := range cmds {
+		items = append(items, &listItem{
+			title: cmd.Name,
+			desc:  cmd.Description,
+			cmd:   &cmd,
+		})
+	}
+
+	return items
 }
 
 type listItem struct {
