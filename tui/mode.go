@@ -11,6 +11,7 @@ const (
 	createMode
 	editMode
 	searchMode
+	executeMode
 )
 
 type updateModeMsg struct {

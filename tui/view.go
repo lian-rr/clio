@@ -15,6 +15,8 @@ import (
 
 const title = "KEEP"
 
+const minCharCount = 3
+
 type model struct {
 	ctx            context.Context
 	commandManager manager
@@ -158,18 +160,6 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		return changeMode(searchMode, func(m *model) {
 			m.searchView.Focus()
 		})
-	case key.Matches(msg, m.keys.enter):
-		command, ok := m.commandsView.selectedItem()
-		if !ok {
-			break
-		}
-
-		return changeMode(detailMode, func(m *model) {
-			err := m.detailView.SetContent(*command.cmd)
-			if err != nil {
-				m.logger.Error("error setting detail view content", slog.Any("error", err))
-			}
-		})
 	case key.Matches(msg, m.keys.discardSearch):
 		m.searchView.Reset()
 		cmds, err := m.fechCommands()
@@ -181,26 +171,38 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		}
 
 		m.setContent(cmds)
-	default:
-		m.commandsView, cmd = m.commandsView.Update(msg)
+	case key.Matches(msg, m.keys.enter):
 		command, ok := m.commandsView.selectedItem()
 		if !ok {
 			break
 		}
 
-		if !command.loaded {
-			c, err := m.commandManager.GetOne(m.ctx, command.cmd.ID.String())
+		return changeMode(executeMode, func(m *model) {
+			err := m.detailView.SetContent(*command.cmd)
+			if err != nil {
+				m.logger.Error("error setting detail view content", slog.Any("error", err))
+			}
+		})
+	default:
+		m.commandsView, cmd = m.commandsView.Update(msg)
+		item, ok := m.commandsView.selectedItem()
+		if !ok {
+			break
+		}
+
+		if !item.loaded {
+			c, err := m.commandManager.GetOne(m.ctx, item.cmd.ID.String())
 			if err != nil {
 				m.logger.Error("error fetching command details", slog.Any("error", err))
 				break
 			}
 
-			command.cmd.Params = c.Params
-			command.loaded = true
+			item.cmd.Params = c.Params
+			item.loaded = true
 
 			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		if err := m.detailView.SetContent(*command.cmd); err != nil {
+		if err := m.detailView.SetContent(*item.cmd); err != nil {
 			m.logger.Error("error setting detail view content", slog.Any("error", err))
 		}
 	}
@@ -211,7 +213,17 @@ func (m *model) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, m.keys.back):
-		return changeMode(navigationMode, nil)
+		return changeMode(navigationMode, func(m *model) {
+			item, ok := m.commandsView.selectedItem()
+			if !ok {
+				return
+			}
+			if err := m.detailView.SetContent(*item.cmd); err != nil {
+				m.logger.Error("error setting detail view content", slog.Any("error", err))
+			}
+		})
+	case key.Matches(msg, m.keys.enter):
+		return changeMode(executeMode, nil)
 	default:
 		// NOTE: nothing for the moment
 	}
@@ -246,7 +258,7 @@ func (m *model) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 		m.searchView, cmd = m.searchView.Update(msg)
 
 		terms := m.searchView.Content()
-		if len(terms) >= 3 {
+		if len(terms) >= minCharCount {
 			m.searching = true
 			cmds, err := m.searchCommands(terms)
 			if err != nil {
