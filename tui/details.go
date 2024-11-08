@@ -19,12 +19,6 @@ const (
 	chromaStyle     = "catppuccin-frappe"
 )
 
-var paramHeaders = []string{
-	"name",
-	"description",
-	"default value",
-}
-
 type detailsView struct {
 	view        viewport.Model
 	infoTable   *table.Table
@@ -56,6 +50,12 @@ func newDetailsView(logger *slog.Logger) detailsView {
 			return style
 		})
 
+	paramHeaders := []string{
+		"name",
+		"description",
+		"default value",
+	}
+
 	params := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
@@ -73,7 +73,7 @@ func newDetailsView(logger *slog.Logger) detailsView {
 	}
 }
 
-func (dc *detailsView) SetContent(cmd command.Command) error {
+func (dc *detailsView) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -93,15 +93,14 @@ func (dc *detailsView) SetContent(cmd command.Command) error {
 	}...))
 
 	style := lipgloss.NewStyle()
-	content := dc.contentStyle.
-		Render(
-			lipgloss.JoinVertical(
-				lipgloss.Top,
-				dc.infoTable.Render(),
-				style.MarginLeft(1).Render(labelStyle.Render("Parameters")),
-				style.MarginLeft(2).Render(dc.paramsTable.Render()),
-			),
-		)
+	content := dc.contentStyle.Render(
+		lipgloss.JoinVertical(
+			lipgloss.Top,
+			dc.infoTable.Render(),
+			style.MarginLeft(1).Render(labelStyle.Render("Parameters")),
+			style.MarginLeft(2).Render(dc.paramsTable.Render()),
+		),
+	)
 
 	dc.view.SetContent(content)
 	return nil
@@ -115,7 +114,7 @@ func (dc *detailsView) SetSize(width, height int) {
 	dc.titleStyle.Width(width)
 
 	dc.view.Width, dc.view.Height = width, height
-	w, _ := relativeDimensions(width, height, .50, .50)
+	w, _ := relativeDimensions(width, height, .90, .80)
 
 	dc.paramsTable.Width(w)
 }

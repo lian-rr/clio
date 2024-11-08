@@ -25,9 +25,10 @@ type model struct {
 	logger *slog.Logger
 
 	// panels
+	searchView   searchView
 	commandsView listView
 	detailView   detailsView
-	searchView   searchView
+	executeView  executeView
 	help         help.Model
 
 	currentMode mode
@@ -44,8 +45,9 @@ func newModel(ctx context.Context, manager manager, logger *slog.Logger) (*model
 		titleStyle:     titleStyle,
 		keys:           defaultKeyMap,
 		commandsView:   newListView(),
-		detailView:     newDetailsView(logger),
 		searchView:     newSearchView(),
+		detailView:     newDetailsView(logger),
+		executeView:    newExecuteView(logger),
 		help:           help.New(),
 		currentMode:    navigationMode,
 		logger:         logger,
@@ -87,6 +89,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() string {
+	var detailPanelContent string
+	if m.currentMode == executeMode {
+		detailPanelContent = m.executeView.View()
+	} else {
+		detailPanelContent = m.detailView.View()
+	}
+
 	return docStyle.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
@@ -105,7 +114,7 @@ func (m *model) View() string {
 					lipgloss.JoinVertical(
 						lipgloss.Top,
 						m.titleStyle.Render(title),
-						m.detailView.View(),
+						detailPanelContent,
 					)),
 			),
 			helpStyle.Render(m.help.View(m.keys)),
@@ -132,23 +141,32 @@ func (m *model) updateComponentsDimensions(width, height int) {
 	w, h = relativeDimensions(width, height, .75, .85)
 	// title
 	m.titleStyle = m.titleStyle.Width(w)
+
 	// detail view
 	m.detailView.SetSize(w, h)
+
+	// execute view
+	m.executeView.SetSize(w, h)
+
+	m.logger.Debug("execute view",
+		slog.Int("width", width),
+		slog.Int("rel width", w),
+		slog.Int("height", height),
+		slog.Int("rel height", h),
+	)
 }
 
 func (m *model) inputRouter(msg tea.KeyMsg) tea.Cmd {
 	switch m.currentMode {
 	case searchMode:
 		return m.handleSearchInput(msg)
-	case createMode:
-	case editMode:
 	case detailMode:
 		return m.handleDetailInput(msg)
+	case executeMode:
+		return m.handleExecuteInput(msg)
 	default:
 		return m.handleNavigationInput(msg)
 	}
-
-	return nil
 }
 
 func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
@@ -172,13 +190,13 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 		m.setContent(cmds)
 	case key.Matches(msg, m.keys.enter):
-		command, ok := m.commandsView.selectedItem()
+		item, ok := m.commandsView.selectedItem()
 		if !ok {
 			break
 		}
 
 		return changeMode(executeMode, func(m *model) {
-			err := m.detailView.SetContent(*command.cmd)
+			err := m.executeView.SetCommand(*item.cmd)
 			if err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
@@ -202,7 +220,7 @@ func (m *model) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		if err := m.detailView.SetContent(*item.cmd); err != nil {
+		if err := m.detailView.SetCommand(*item.cmd); err != nil {
 			m.logger.Error("error setting detail view content", slog.Any("error", err))
 		}
 	}
@@ -218,25 +236,39 @@ func (m *model) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 			if !ok {
 				return
 			}
-			if err := m.detailView.SetContent(*item.cmd); err != nil {
+			if err := m.detailView.SetCommand(*item.cmd); err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
-	case key.Matches(msg, m.keys.enter):
-		return changeMode(executeMode, nil)
 	default:
-		// NOTE: nothing for the moment
+		return cmd
 	}
-	return cmd
+}
+
+func (m *model) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	switch {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, func(m *model) {
+			item, ok := m.commandsView.selectedItem()
+			if !ok {
+				return
+			}
+			if err := m.detailView.SetCommand(*item.cmd); err != nil {
+				m.logger.Error("error setting detail view content", slog.Any("error", err))
+			}
+		})
+	default:
+		m.executeView, cmd = m.executeView.Update(msg)
+		return cmd
+	}
 }
 
 func (m *model) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 	getAll := func() {
 		cmds, err := m.fechCommands()
 		if err != nil {
-			m.logger.Error("error getting all commands",
-				slog.Any("error", err),
-			)
+			m.logger.Error("error getting all commands", slog.Any("error", err))
 			return
 		}
 
@@ -285,7 +317,7 @@ func (m *model) setContent(cmds []command.Command) error {
 			return err
 		}
 		cmds[0] = cmd
-		m.detailView.SetContent(cmd)
+		m.detailView.SetCommand(cmd)
 	}
 
 	return nil
