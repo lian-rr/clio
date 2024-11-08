@@ -79,6 +79,14 @@ func New(name string, desc string, cmd string, opts ...cmdOpt) (Command, error) 
 
 // Compile returns the command with the arguments applied.
 func (c Command) Compile(args []Argument) (string, error) {
+	if c.tmp == nil {
+		tmp, err := template.New(c.Name).Parse(c.Command)
+		if err != nil {
+			return "", fmt.Errorf("invalid command: %w", err)
+		}
+		c.tmp = tmp
+	}
+
 	if len(args) != len(c.Params) {
 		return "", ErrInvalidNumOfParams
 	}
