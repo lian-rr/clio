@@ -257,25 +257,69 @@ var testCommands = `
 `
 
 var testParams = `
-	INSERT INTO parameters (id, command, name, description, value) VALUES 
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537a5', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a5', 'username', 'The name of the user to create', 'newuser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537a6', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a6', 'username', 'The name of the user to delete', 'olduser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537a7', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a7', 'info', 'New information for the user', 'Updated info'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537a8', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a8', 'filter', 'Pattern to filter the user list', '*'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537a9', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a9', 'username', 'The name of the user to fetch', 'specificuser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537aa', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537aa', 'username', 'The name of the user to change password', 'changeme'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537ab', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ab', 'username', 'The name of the user to lock', 'lockeduser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537ac', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ac', 'username', 'The name of the user to unlock', 'unlockeduser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537ad', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ad', 'username', 'The name of the user to get logs for', 'loggeruser'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537ae', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ae', 'service', 'The name of the service to check status', 'myservice'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537af', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537af', 'database', 'The name of the database to back up', 'mydatabase'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b0', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b0', 'database', 'The name of the database to restore', 'mydatabase'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b1', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b1', 'path', 'The path to check disk space', '/'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b2', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b2', 'service', 'The name of the service to start', 'myservice'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b3', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b3', 'service', 'The name of the service to stop', 'myservice'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b4', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b4', 'service', 'The name of the service to check', 'myservice'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b5', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b5', 'path', 'The path for the new directory', '/new/directory'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b6', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b6', 'filename', 'The name of the file to delete', 'file.txt'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b7', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b7', 'source', 'The source file to move', 'file.txt'),
-	('1c3a5500-59ef-7e3c-8d6d-73e60c9537b8', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b8', 'source', 'The source file to copy', 'file.txt')
+INSERT INTO parameters (id, command, name, description, value) VALUES
+-- Parameters for CreateUser
+('c9b073b2-982f-77fa-a052-bbc5cfaf29d1', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a5', 'username', 'The username for the new user', '{{.username}}'),
+
+-- Parameters for DeleteUser
+('3ad0860b-8f8b-74d0-9534-e3d2bde019f1', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a6', 'username', 'The username of the user to delete', '{{.username}}'),
+
+-- Parameters for UpdateUser
+('9c6b4b2b-9c25-77fa-a399-08d0e4d8e39f', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a7', 'info', 'Additional information for the user', '{{.info}}'),
+('cb67f939-913b-7129-a0da-4bb90f689b87', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a7', 'username', 'The username of the user to modify', '{{.username}}'),
+
+-- Parameters for ListUsers
+('b18eaf53-b29c-710f-9a8d-b9f66fe8cd97', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a8', 'filter', 'A filter for listing users', '{{.filter}}'),
+
+-- Parameters for GetUser
+('4cd6ec2c-a78c-79c0-9f66-1e338506bf8e', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537a9', 'username', 'The username of the user to retrieve', '{{.username}}'),
+
+-- Parameters for ChangePassword
+('e80f7327-9b01-7b4d-a35b-0bfa460c6d97', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537aa', 'username', 'The username of the user to change the password for', '{{.username}}'),
+
+-- Parameters for LockUser
+('3f5cfa56-b4d2-7467-b0b1-8ff28b8b576f', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ab', 'username', 'The username of the user to lock', '{{.username}}'),
+
+-- Parameters for UnlockUser
+('d62ad079-d722-7b3a-bc98-2db971a0b0e6', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ac', 'username', 'The username of the user to unlock', '{{.username}}'),
+
+-- Parameters for GetLogs
+('5adf91b7-c0e2-7398-bce2-5779d609cae3', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ad', 'username', 'The username whose logs to fetch', '{{.username}}'),
+
+-- Parameters for SystemStatus
+('6b27d379-99b1-7058-b57b-5a6d2b849f4f', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537ae', 'service', 'The service to check the status of', ''),
+
+-- Parameters for BackupDatabase
+('17792b46-bba3-7420-bb35-c6d9b9fa073d', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537af', 'database', 'The name of the database to backup', '{{.database}}'),
+('438b49d9-8e61-742d-b319-451da96e1c59', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537af', 'output', 'The output file for the database backup', '{{.output}}'),
+
+-- Parameters for RestoreDatabase
+('bc56918d-9b51-72ad-90e9-14c104d3d0cf', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b0', 'database', 'The name of the database to restore', '{{.database}}'),
+('4b3f06c0-d24c-7131-9119-f173c5a0b9ba', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b0', 'backup', 'The backup file to restore from', '{{.backup}}'),
+
+-- Parameters for CheckDiskSpace
+('789d4e7b-b358-74f1-b02e-bb40b5c1b32c', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b1', 'path', 'The directory or mount point to check disk space for', '{{.path}}'),
+
+-- Parameters for StartService
+('c498a16d-44e3-70ca-bb83-94fbb8e6bcdd', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b2', 'service', 'The service to start', ''),
+
+-- Parameters for StopService
+('ad10d4b5-84fc-75a2-b672-3e38ef7a1e5f', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b3', 'service', 'The service to stop', ''),
+
+-- Parameters for CheckServiceStatus
+('05a6d707-b39e-77c8-a104-f5a230d0a3f3', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b4', 'service', 'The service to check the status of', ''),
+
+-- Parameters for CreateDirectory
+('178a56d2-b730-775b-82f4-e7bc430f39b2', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b5', 'path', 'The path for the directory to create', '{{.path}}'),
+
+-- Parameters for DeleteFile
+('a0d8d8bc-bda2-76d9-b074-b0a8e30c708e', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b6', 'filename', 'The file to delete', '{{.filename}}'),
+
+-- Parameters for MoveFile
+('5dcd8df8-44c3-767b-a8f5-d1cfef8a7cc9', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b7', 'source', 'The source file to move', '{{.source}}'),
+('e4b33064-c8a1-7750-9710-f4d5425ad750', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b7', 'destination', 'The destination file location', '{{.destination}}'),
+
+-- Parameters for CopyFile
+('59c4cc6d-c43e-7429-803d-73a2e6d17936', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b8', 'source', 'The source file to copy', '{{.source}}'),
+('e5ab9cfc-b9b9-74e1-8d2d-c58d7a4f79b8', '7f5f4b38-59ef-7e3c-8d6d-73e60c9537b8', 'destination', 'The destination file location', '{{.destination}}');
 `
