@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -12,16 +13,35 @@ import (
 	"github.com/lian_rr/keep/command"
 )
 
+var inputStyle = lipgloss.NewStyle().
+	Italic(true).
+	Foreground(lipgloss.AdaptiveColor{
+		Light: "#2aa198",
+		Dark:  "#2aa198",
+	})
+
+var (
+	nextParamKey = key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "next param"),
+	)
+	previousParamKey = key.NewBinding(
+		key.WithKeys("shift+tab"),
+		key.WithHelp("shift+tab", "previous param"),
+	)
+)
+
 type executeView struct {
 	command *command.Command
 
-	paramsTable   *table.Table
-	infoTable     *table.Table
-	paramInputs   map[string]*textinput.Model
-	selectedInput string
+	paramsTable *table.Table
+	infoTable   *table.Table
+	paramInputs map[string]*textinput.Model
 
-	width  int
-	height int
+	orderedParams []string
+	selectedInput int
+	width         int
+	height        int
 
 	contentStyle lipgloss.Style
 	titleStyle   lipgloss.Style
@@ -65,11 +85,25 @@ func newExecuteView(logger *slog.Logger) executeView {
 }
 
 func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
+	paramCount := len(v.paramInputs)
 	var cmd tea.Cmd
-	if len(v.paramInputs) != 0 {
+	if paramCount != 0 {
 		var input textinput.Model
-		input, cmd = v.paramInputs[v.selectedInput].Update(msg)
-		v.paramInputs[v.selectedInput] = &input
+		switch {
+		case key.Matches(msg, nextParamKey):
+			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
+			v.selectedInput = (v.selectedInput + 1) % paramCount
+			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
+		case key.Matches(msg, previousParamKey):
+			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
+			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
+			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
+			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
+		default:
+			param := v.orderedParams[v.selectedInput]
+			input, cmd = v.paramInputs[param].Update(msg)
+			v.paramInputs[param] = &input
+		}
 	}
 	return *v, cmd
 }
@@ -110,7 +144,7 @@ func (v *executeView) View() string {
 				lipgloss.Center,
 				v.titleStyle.Render("Compose"),
 				v.infoTable.Render(),
-				outCommand,
+				borderStyle.Render(outCommand),
 				v.paramsTable.Render(),
 			),
 		))
@@ -125,31 +159,29 @@ func (v *executeView) SetCommand(cmd command.Command) error {
 	}...))
 
 	rows := make([][]string, 0, len(cmd.Params))
+	orderedParams := make([]string, 0, len(cmd.Params))
 	v.paramInputs = make(map[string]*textinput.Model, len(cmd.Params))
-	for i, param := range cmd.Params {
+	for _, param := range cmd.Params {
 		rows = append(rows, []string{param.Name, param.Description, param.DefaultValue})
 
 		pi := textinput.New()
 		pi.Placeholder = param.Name
-		pi.TextStyle = lipgloss.NewStyle().
-			Italic(true).
-			Foreground(lipgloss.AdaptiveColor{
-				Light: "#909090",
-				Dark:  "#626262",
-			})
+		pi.TextStyle = inputStyle
 		pi.Prompt = ""
+		pi.CharLimit = 32
 		if param.DefaultValue != "" {
 			pi.SetSuggestions([]string{param.DefaultValue})
 		}
 
 		v.paramInputs[param.Name] = &pi
-		if i == 0 {
-			v.selectedInput = param.Name
-			pi.Focus()
-		}
+		orderedParams = append(orderedParams, param.Name)
 	}
 
 	v.paramsTable.Data(table.NewStringData(rows...))
+	v.orderedParams = orderedParams
+	if len(orderedParams) > 0 {
+		v.paramInputs[orderedParams[0]].Focus()
+	}
 
 	return nil
 }
