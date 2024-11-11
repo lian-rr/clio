@@ -26,7 +26,7 @@ type Tui struct {
 
 // New returns a new TUI container.
 func New(ctx context.Context, manager *command.Manager, logger *slog.Logger) (Tui, error) {
-	model, err := newView(ctx, manager, logger)
+	model, err := newMain(ctx, manager, logger)
 	if err != nil {
 		return Tui{}, fmt.Errorf("error starting the main model: %w", err)
 	}
@@ -48,7 +48,7 @@ func (t *Tui) Start() error {
 		return fmt.Errorf("error starting the TUI program: %w", err)
 	}
 
-	mm, ok := m.(*view)
+	mm, ok := m.(*main)
 	if !ok {
 		return errors.New("error getting last model")
 	}
