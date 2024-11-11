@@ -2,12 +2,14 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/lian_rr/keep/command"
+	"github.com/lian_rr/keep/out"
 )
 
 type manager interface {
@@ -19,11 +21,12 @@ type manager interface {
 // Tui contains the TUI logic.
 type Tui struct {
 	program *tea.Program
+	logger  *slog.Logger
 }
 
 // New returns a new TUI container.
 func New(ctx context.Context, manager *command.Manager, logger *slog.Logger) (Tui, error) {
-	model, err := newModel(ctx, manager, logger)
+	model, err := newView(ctx, manager, logger)
 	if err != nil {
 		return Tui{}, fmt.Errorf("error starting the main model: %w", err)
 	}
@@ -34,14 +37,24 @@ func New(ctx context.Context, manager *command.Manager, logger *slog.Logger) (Tu
 			tea.WithContext(ctx),
 			tea.WithAltScreen(),
 		),
+		logger: logger,
 	}, nil
 }
 
 // Start start the TUI app.
 func (t *Tui) Start() error {
-	if _, err := t.program.Run(); err != nil {
+	m, err := t.program.Run()
+	if err != nil {
 		return fmt.Errorf("error starting the TUI program: %w", err)
 	}
+
+	mm, ok := m.(*view)
+	if !ok {
+		return errors.New("error getting last model")
+	}
+	t.logger.Debug("program outcome", slog.String("command", mm.output))
+	out.Produce(mm.output)
+	out.Clear()
 
 	return nil
 }

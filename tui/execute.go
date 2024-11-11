@@ -104,7 +104,7 @@ func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			out, err := v.produceCommand()
 			if err != nil {
-				v.logger.Error("producing incomplete command", slog.Any("error", err))
+				v.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
 			return *v, handleOutcome(out)
@@ -160,6 +160,7 @@ func (v *executeView) View() string {
 }
 
 func (v *executeView) SetCommand(cmd command.Command) error {
+	v.logger.Debug("command to execute", slog.Any("command", cmd))
 	v.command = &cmd
 
 	v.infoTable.Data(table.NewStringData([][]string{
