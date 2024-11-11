@@ -25,6 +25,7 @@ type (
 		Description string
 		Command     string
 		Params      []Parameter
+		tmp         *template.Template
 	}
 
 	// Parameter represents the Command Parameter
@@ -50,11 +51,17 @@ func New(name string, desc string, cmd string, opts ...cmdOpt) (Command, error) 
 		return Command{}, err
 	}
 
+	tmp, err := template.New(name).Parse(cmd)
+	if err != nil {
+		return Command{}, fmt.Errorf("invalid command: %w", err)
+	}
+
 	cont := Command{
 		ID:          id,
 		Name:        name,
 		Description: desc,
 		Command:     cmd,
+		tmp:         tmp,
 	}
 
 	for _, opt := range opts {
@@ -72,9 +79,12 @@ func New(name string, desc string, cmd string, opts ...cmdOpt) (Command, error) 
 
 // Compile returns the command with the arguments applied.
 func (c Command) Compile(args []Argument) (string, error) {
-	tmp, err := template.New("command").Parse(c.Command)
-	if err != nil {
-		return "", fmt.Errorf("invalid command: %w", err)
+	if c.tmp == nil {
+		tmp, err := template.New(c.Name).Parse(c.Command)
+		if err != nil {
+			return "", fmt.Errorf("invalid command: %w", err)
+		}
+		c.tmp = tmp
 	}
 
 	if len(args) != len(c.Params) {
@@ -87,7 +97,7 @@ func (c Command) Compile(args []Argument) (string, error) {
 	}
 
 	var buffer bytes.Buffer
-	if err := tmp.Execute(&buffer, arguments); err != nil {
+	if err := c.tmp.Execute(&buffer, arguments); err != nil {
 		return "", err
 	}
 
