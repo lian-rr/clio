@@ -83,8 +83,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case updateModeMsg:
 		msg.updateMode(m)
 		return m, nil
+	// handle outcome
+	case outcomeMsg:
+		m.logger.Debug("outcome", slog.String("command", msg.outcome))
+		return m, tea.Quit
 	}
-
 	return m, nil
 }
 

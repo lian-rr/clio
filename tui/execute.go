@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -99,6 +100,14 @@ func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
+		case key.Matches(msg, defaultKeyMap.enter):
+			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
+			out, err := v.produceCommand()
+			if err != nil {
+				v.logger.Error("producing incomplete command", slog.Any("error", err))
+				break
+			}
+			return *v, handleOutcome(out)
 		default:
 			param := v.orderedParams[v.selectedInput]
 			input, cmd = v.paramInputs[param].Update(msg)
@@ -184,6 +193,27 @@ func (v *executeView) SetCommand(cmd command.Command) error {
 	}
 
 	return nil
+}
+
+func (v *executeView) produceCommand() (string, error) {
+	arguments := make([]command.Argument, 0, len(v.command.Params))
+	for param, input := range v.paramInputs {
+		val := input.Value()
+		if len(val) == 0 {
+			return "", fmt.Errorf("value empty for param %q", param)
+		}
+		arguments = append(arguments, command.Argument{
+			Name:  param,
+			Value: val,
+		})
+	}
+
+	outCommand, err := v.command.Compile(arguments)
+	if err != nil {
+		return "", fmt.Errorf("error compiling command: %v", err)
+	}
+
+	return outCommand, nil
 }
 
 func (v *executeView) SetSize(width, height int) {
