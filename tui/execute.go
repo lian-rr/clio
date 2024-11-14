@@ -21,17 +21,6 @@ var inputStyle = lipgloss.NewStyle().
 		Dark:  "#2aa198",
 	})
 
-var (
-	nextParamKey = key.NewBinding(
-		key.WithKeys("tab"),
-		key.WithHelp("tab", "next param"),
-	)
-	previousParamKey = key.NewBinding(
-		key.WithKeys("shift+tab"),
-		key.WithHelp("shift+tab", "previous param"),
-	)
-)
-
 type executeView struct {
 	command *command.Command
 
@@ -91,11 +80,11 @@ func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
 	if paramCount != 0 {
 		var input textinput.Model
 		switch {
-		case key.Matches(msg, nextParamKey):
+		case key.Matches(msg, defaultKeyMap.nextParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			v.selectedInput = (v.selectedInput + 1) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
-		case key.Matches(msg, previousParamKey):
+		case key.Matches(msg, defaultKeyMap.previousParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
@@ -160,11 +149,10 @@ func (v *executeView) View() string {
 }
 
 func (v *executeView) SetCommand(cmd command.Command) error {
-	v.logger.Debug("command to execute", slog.Any("command", cmd))
 	v.command = &cmd
 
 	v.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Title"), cmd.Name},
+		{labelStyle.Render("Name"), cmd.Name},
 		{labelStyle.Render("Description"), cmd.Description},
 	}...))
 
@@ -180,6 +168,7 @@ func (v *executeView) SetCommand(cmd command.Command) error {
 		pi.Prompt = ""
 		pi.CharLimit = 32
 		if param.DefaultValue != "" {
+			// TODO: review this section
 			pi.SetSuggestions([]string{param.DefaultValue})
 		}
 

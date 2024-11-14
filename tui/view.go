@@ -24,11 +24,12 @@ type main struct {
 	keys   keyMap
 	logger *slog.Logger
 
-	// panels
+	// views
 	searchView   searchView
 	commandsView listView
 	detailView   detailsView
 	executeView  executeView
+	editView     editView
 	help         help.Model
 
 	currentMode mode
@@ -50,6 +51,7 @@ func newMain(ctx context.Context, manager manager, logger *slog.Logger) (*main, 
 		searchView:     newSearchView(),
 		detailView:     newDetailsView(logger),
 		executeView:    newExecuteView(logger),
+		editView:       newEditView(logger),
 		help:           help.New(),
 		currentMode:    navigationMode,
 		logger:         logger,
@@ -96,9 +98,12 @@ func (m *main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *main) View() string {
 	var detailPanelContent string
-	if m.currentMode == executeMode {
+	switch m.currentMode {
+	case executeMode:
 		detailPanelContent = m.executeView.View()
-	} else {
+	case editMode:
+		detailPanelContent = m.editView.View()
+	default:
 		detailPanelContent = m.detailView.View()
 	}
 
@@ -151,15 +156,13 @@ func (m *main) updateComponentsDimensions(width, height int) {
 	// detail view
 	m.detailView.SetSize(w, h)
 
+	w, h = relativeDimensions(width, height, .74, .92)
+
 	// execute view
 	m.executeView.SetSize(w, h)
 
-	m.logger.Debug("execute view",
-		slog.Int("width", width),
-		slog.Int("rel width", w),
-		slog.Int("height", height),
-		slog.Int("rel height", h),
-	)
+	// edit view
+	m.editView.SetSize(w, h)
 }
 
 func (m *main) inputRouter(msg tea.KeyMsg) tea.Cmd {
@@ -170,6 +173,8 @@ func (m *main) inputRouter(msg tea.KeyMsg) tea.Cmd {
 		return m.handleDetailInput(msg)
 	case executeMode:
 		return m.handleExecuteInput(msg)
+	case editMode:
+		return m.handleEditInput(msg)
 	default:
 		return m.handleNavigationInput(msg)
 	}
@@ -188,9 +193,7 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		m.searchView.Reset()
 		cmds, err := m.fechCommands()
 		if err != nil {
-			m.logger.Error("error getting all commands",
-				slog.Any("error", err),
-			)
+			m.logger.Error("error getting all commands", slog.Any("error", err))
 			break
 		}
 
@@ -204,7 +207,14 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		return changeMode(executeMode, func(m *main) {
 			err := m.executeView.SetCommand(*item.cmd)
 			if err != nil {
-				m.logger.Error("error setting detail view content", slog.Any("error", err))
+				m.logger.Error("error setting execute view content", slog.Any("error", err))
+			}
+		})
+	case key.Matches(msg, m.keys.new):
+		return changeMode(editMode, func(m *main) {
+			err := m.editView.SetCommand(nil)
+			if err != nil {
+				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
 	default:
@@ -266,6 +276,25 @@ func (m *main) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 		})
 	default:
 		m.executeView, cmd = m.executeView.Update(msg)
+		return cmd
+	}
+}
+
+func (m *main) handleEditInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	switch {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, func(m *main) {
+			item, ok := m.commandsView.selectedItem()
+			if !ok {
+				return
+			}
+			if err := m.detailView.SetCommand(*item.cmd); err != nil {
+				m.logger.Error("error setting detail view content", slog.Any("error", err))
+			}
+		})
+	default:
+		m.editView, cmd = m.editView.Update(msg)
 		return cmd
 	}
 }

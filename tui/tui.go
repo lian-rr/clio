@@ -52,9 +52,11 @@ func (t *Tui) Start() error {
 	if !ok {
 		return errors.New("error getting last model")
 	}
-	t.logger.Debug("program outcome", slog.String("command", mm.output))
-	out.Produce(mm.output)
-	out.Clear()
+	if mm.output != "" {
+		t.logger.Debug("program output", slog.String("command", mm.output))
+		out.Produce(mm.output)
+		out.Clear()
+	}
 
 	return nil
 }
