@@ -45,40 +45,51 @@ type (
 type cmdOpt func(*Command) error
 
 // New returns a new Command.
-func New(name string, desc string, cmd string, opts ...cmdOpt) (Command, error) {
+func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, error) {
 	id, err := uuid.NewV6()
 	if err != nil {
 		return Command{}, err
 	}
 
-	tmp, err := template.New(name).Parse(cmd)
-	if err != nil {
-		return Command{}, fmt.Errorf("invalid command: %w", err)
-	}
-
-	cont := Command{
+	cmd := Command{
 		ID:          id,
 		Name:        name,
 		Description: desc,
-		Command:     cmd,
-		tmp:         tmp,
+		Command:     rawCmd,
 	}
 
 	for _, opt := range opts {
-		if err := opt(&cont); err != nil {
+		if err := opt(&cmd); err != nil {
 			return Command{}, err
 		}
 	}
 
-	if len(cont.Params) == 0 {
-		cont.Params = parseParams(cmd)
+	if err := cmd.Build(); err != nil {
+		return Command{}, err
 	}
 
-	return cont, nil
+	return cmd, nil
+}
+
+// Build builds the internal attributes (template and params).
+func (c *Command) Build() error {
+	if c.tmp == nil {
+		tmp, err := template.New(c.Name).Parse(c.Command)
+		if err != nil {
+			return fmt.Errorf("invalid command: %w", err)
+		}
+		c.tmp = tmp
+	}
+
+	if len(c.Params) == 0 {
+		c.Params = parseParams(c.Command)
+	}
+
+	return nil
 }
 
 // Compile returns the command with the arguments applied.
-func (c Command) Compile(args []Argument) (string, error) {
+func (c *Command) Compile(args []Argument) (string, error) {
 	if c.tmp == nil {
 		tmp, err := template.New(c.Name).Parse(c.Command)
 		if err != nil {
