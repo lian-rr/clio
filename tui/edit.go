@@ -177,17 +177,13 @@ func (v *editView) View() string {
 
 	v.paramsTable.Data(table.NewStringData(rows...))
 
-<<<<<<< HEAD
-	var title string
-	switch v.mode {
+commands
 	case editCommandMode:
 		title = "Edit Command"
 	default:
 		title = "New Command"
 	}
 
-=======
->>>>>>> 8e3f686 (new command working)
 	return borderStyle.Render(v.contentStyle.
 		Width(w).
 		Height(h).
