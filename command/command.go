@@ -11,10 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
-const paramsRegex = `{{\s?\.\w+\s?}}`
+var regex = regexp.MustCompile(`{{\s?\.\w+\s?}}`)
 
-var reg = regexp.MustCompile(paramsRegex)
-
+// ErrInvalidNumOfParams returned when the number of params provided doesn't match the command
 var ErrInvalidNumOfParams = errors.New("invalid number of params provided")
 
 type (
@@ -46,7 +45,7 @@ type cmdOpt func(*Command) error
 
 // New returns a new Command.
 func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, error) {
-	id, err := uuid.NewV6()
+	id, err := uuid.NewV7()
 	if err != nil {
 		return Command{}, err
 	}
@@ -73,6 +72,14 @@ func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, erro
 
 // Build builds the internal attributes (template and params).
 func (c *Command) Build() error {
+	if c.ID == uuid.Nil {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		c.ID = id
+	}
+
 	if c.tmp == nil {
 		tmp, err := template.New(c.Name).Parse(c.Command)
 		if err != nil {
@@ -81,10 +88,22 @@ func (c *Command) Build() error {
 		c.tmp = tmp
 	}
 
-	if len(c.Params) == 0 {
-		c.Params = parseParams(c.Command)
+	news := parseParams(c.Command)
+	params := make([]Parameter, 0, len(news))
+	for _, param := range news {
+		for j := 0; j < len(c.Params); j++ {
+			old := c.Params[j]
+			if param.Name == old.Name {
+				param.ID = old.ID
+				param.Description = old.Description
+				param.DefaultValue = old.DefaultValue
+				break
+			}
+		}
+		params = append(params, param)
 	}
 
+	c.Params = params
 	return nil
 }
 
@@ -116,7 +135,7 @@ func (c *Command) Compile(args []Argument) (string, error) {
 }
 
 func parseParams(raw string) []Parameter {
-	rawParams := reg.FindAllString(raw, -1)
+	rawParams := regex.FindAllString(raw, -1)
 
 	params := make([]Parameter, 0, len(rawParams))
 	for _, rp := range rawParams {

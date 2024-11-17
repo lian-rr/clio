@@ -16,6 +16,7 @@ type manager interface {
 	GetAll(context.Context) ([]command.Command, error)
 	GetOne(context.Context, string) (command.Command, error)
 	Search(context.Context, string) ([]command.Command, error)
+	Add(ctx context.Context, cmd command.Command) (command.Command, error)
 }
 
 // Tui contains the TUI logic.

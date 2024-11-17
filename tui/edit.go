@@ -13,7 +13,29 @@ import (
 	"github.com/lian_rr/keep/command"
 )
 
+const (
+	nameInputPos = iota
+	descInputPos
+	cmdInputPos
+)
+
+type cmdEditMode int
+
+const (
+	_ cmdEditMode = iota
+	newCommandMode
+	editCommandMode
+)
+
+// number of fixed inputs (name, description, command)
+const fixedInputs = 3
+
 type editView struct {
+	cmd  *command.Command
+	mode cmdEditMode
+	// cache the params inputs
+	paramsContent map[string][2]*textinput.Model
+
 	infoTable   *table.Table
 	paramsTable *table.Table
 	logger      *slog.Logger
@@ -48,11 +70,9 @@ func newEditView(logger *slog.Logger) editView {
 		Border(lipgloss.HiddenBorder()).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			style := lipgloss.NewStyle()
-
 			if col != 0 {
 				style = style.MarginLeft(1)
 			}
-
 			return style
 		})
 
@@ -68,11 +88,13 @@ func newEditView(logger *slog.Logger) editView {
 		Headers(capitalizeHeaders(paramHeaders)...)
 
 	return editView{
-		infoTable:   infoTable,
-		paramsTable: params,
-		inputs:      []*textinput.Model{&nameInput, &descInput, &cmdInput},
-		logger:      logger,
-		titleStyle:  titleStyle,
+		mode:          newCommandMode,
+		infoTable:     infoTable,
+		paramsTable:   params,
+		inputs:        []*textinput.Model{&nameInput, &descInput, &cmdInput},
+		paramsContent: make(map[string][2]*textinput.Model),
+		logger:        logger,
+		titleStyle:    titleStyle,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -80,28 +102,57 @@ func newEditView(logger *slog.Logger) editView {
 	}
 }
 
-func (e *editView) Update(msg tea.KeyMsg) (editView, tea.Cmd) {
-	inputCount := len(e.inputs)
+func (v *editView) Update(msg tea.KeyMsg) (editView, tea.Cmd) {
+	inputCount := len(v.inputs)
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, defaultKeyMap.nextParamKey):
-		e.inputs[e.selectedInput].Blur()
-		e.selectedInput = (e.selectedInput + 1) % inputCount
-		e.inputs[e.selectedInput].Focus()
+		v.inputs[v.selectedInput].Blur()
+		v.selectedInput = (v.selectedInput + 1) % inputCount
+		v.inputs[v.selectedInput].Focus()
 	case key.Matches(msg, defaultKeyMap.previousParamKey):
-		e.inputs[e.selectedInput].Blur()
+		v.inputs[v.selectedInput].Blur()
 		// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
-		e.selectedInput = ((e.selectedInput-1)%inputCount + inputCount) % inputCount
-		e.inputs[e.selectedInput].Focus()
-
+		v.selectedInput = ((v.selectedInput-1)%inputCount + inputCount) % inputCount
+		v.inputs[v.selectedInput].Focus()
+	case key.Matches(msg, defaultKeyMap.enter):
+		if err := v.cmd.Build(); err != nil {
+			v.logger.Warn("error building param", slog.Any("error", err))
+			break
+		}
+		switch v.mode {
+		case newCommandMode:
+			return *v, handleNewCmdMsg(*v.cmd)
+		case editCommandMode:
+			return *v, handleUpdateCmd(*v.cmd)
+		default:
+			v.logger.Error("unknown mode found. discarding command", slog.Any("mode", v.mode))
+		}
 	default:
 		var input textinput.Model
-		e.logger.Debug("update", slog.Int("selected input", e.selectedInput))
-		input, cmd = e.inputs[e.selectedInput].Update(msg)
-		e.inputs[e.selectedInput] = &input
+		input, cmd = v.inputs[v.selectedInput].Update(msg)
+		v.inputs[v.selectedInput] = &input
 
+		// if command changed
+		if v.selectedInput == cmdInputPos {
+			if len(v.inputs[cmdInputPos].Value()) != len(v.cmd.Command) {
+				if err := v.updateCommand(); err != nil {
+					v.logger.Warn("error building cmd", slog.Any("error", err))
+				}
+				v.refreshParamsInputs()
+			}
+		} else if v.selectedInput > cmdInputPos {
+			v.updateParams()
+		}
+
+		v.logger.Debug("cmd values updated",
+			slog.String("name", v.cmd.Name),
+			slog.String("desc", v.cmd.Description),
+			slog.String("command", v.cmd.Command),
+			slog.Any("params", v.cmd.Params),
+		)
 	}
-	return *e, cmd
+	return *v, cmd
 }
 
 func (v *editView) View() string {
@@ -110,10 +161,21 @@ func (v *editView) View() string {
 
 	style := lipgloss.NewStyle()
 	v.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Name"), v.inputStyle.Render(v.inputs[0].View())},
-		{labelStyle.Render("Description"), v.inputStyle.Render(v.inputs[1].View())},
-		{labelStyle.Render("Command"), v.inputStyle.Render(v.inputs[2].View())},
+		{labelStyle.Render("Name"), v.inputStyle.Render(v.inputs[nameInputPos].View())},
+		{labelStyle.Render("Description"), v.inputStyle.Render(v.inputs[descInputPos].View())},
+		{labelStyle.Render("Command"), v.inputStyle.Render(v.inputs[cmdInputPos].View())},
 	}...))
+
+	rows := make([][]string, 0, len(v.cmd.Params))
+	for i, param := range v.cmd.Params {
+		rows = append(rows, []string{
+			param.Name,
+			v.inputs[i*2+3].View(),
+			v.inputs[i*2+4].View(),
+		})
+	}
+
+	v.paramsTable.Data(table.NewStringData(rows...))
 
 	return borderStyle.Render(v.contentStyle.
 		Width(w).
@@ -129,16 +191,27 @@ func (v *editView) View() string {
 		))
 }
 
-func (v *editView) SetCommand(cmd *command.Command) error {
-	v.logger.Debug("setting edit view content")
+func (v *editView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
+	// clear the params inputs
+	for _, input := range v.inputs {
+		input.Reset()
+	}
+	v.inputs = append([]*textinput.Model{}, v.inputs[:fixedInputs]...)
+	v.paramsContent = make(map[string][2]*textinput.Model)
+
+	v.mode = mode
 	if cmd == nil {
-		v.inputs[0].Reset()
-		v.inputs[1].Reset()
-		v.inputs[2].Reset()
+		v.cmd = &command.Command{}
+	} else {
+		v.cmd = cmd
+		v.inputs[nameInputPos].SetValue(cmd.Name)
+		v.inputs[descInputPos].SetValue(cmd.Description)
+		v.inputs[nameInputPos].SetValue(cmd.Command)
+		v.refreshParamsInputs()
 	}
 
-	v.inputs[0].Focus()
-	v.selectedInput = 0
+	v.inputs[nameInputPos].Focus()
+	v.selectedInput = nameInputPos
 	return nil
 }
 
@@ -149,4 +222,51 @@ func (v *editView) SetSize(width, height int) {
 	v.infoTable.Width(w)
 	v.paramsTable.Width(w)
 	v.inputStyle = v.inputStyle.Width(w)
+}
+
+func (v *editView) updateCommand() error {
+	v.cmd.Name = v.inputs[nameInputPos].Value()
+	v.cmd.Description = v.inputs[descInputPos].Value()
+
+	cmd := v.inputs[cmdInputPos].Value()
+	if len(cmd) != len(v.cmd.Command) {
+		v.cmd.Command = v.inputs[cmdInputPos].Value()
+		v.logger.Debug("rebuilding command")
+		return v.cmd.Build()
+	}
+
+	return nil
+}
+
+func (v *editView) updateParams() {
+	paramPos := (v.selectedInput - fixedInputs) / 2
+	field := (v.selectedInput - fixedInputs) % 2
+
+	pName := v.cmd.Params[paramPos].Name
+	value := v.inputs[v.selectedInput].Value()
+	v.paramsContent[pName][field].SetValue(value)
+
+	if field == 0 {
+		v.cmd.Params[paramPos].Description = value
+	} else {
+		v.cmd.Params[paramPos].DefaultValue = value
+	}
+}
+
+func (v *editView) refreshParamsInputs() {
+	inputs := v.inputs[:fixedInputs]
+	for _, param := range v.cmd.Params {
+		if in, ok := v.paramsContent[param.Name]; ok {
+			inputs = append(inputs, in[0], in[1])
+		} else {
+			descInput := textinput.New()
+			descInput.Placeholder = "add some description"
+
+			dvInput := textinput.New()
+			dvInput.Placeholder = "optional"
+			v.paramsContent[param.Name] = [2]*textinput.Model{&descInput, &dvInput}
+			inputs = append(inputs, &descInput, &dvInput)
+		}
+	}
+	v.inputs = inputs
 }

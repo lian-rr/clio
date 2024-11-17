@@ -89,9 +89,18 @@ func (m *main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	// handle outcome
 	case outcomeMsg:
-		m.logger.Debug("outcome", slog.String("command", msg.outcome))
-		m.output = msg.outcome
+		m.logger.Debug("output: ", slog.String("command", msg.output))
+		m.output = msg.output
 		return m, tea.Quit
+	case newCmdMsg:
+		m.logger.Debug("new command to store", slog.Any("command", msg.command))
+		if err := m.saveCommand(msg.command); err != nil {
+			m.logger.Error("error storing new command", slog.Any("error", err))
+		}
+		return m, changeMode(navigationMode, nil)
+	case editCmdMsg:
+		m.logger.Debug("command to edit", slog.Any("command", msg.command))
+		return m, changeMode(navigationMode, nil)
 	}
 	return m, nil
 }
@@ -212,7 +221,7 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		})
 	case key.Matches(msg, m.keys.new):
 		return changeMode(editMode, func(m *main) {
-			err := m.editView.SetCommand(nil)
+			err := m.editView.SetCommand(newCommandMode, nil)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
@@ -352,7 +361,6 @@ func (m *main) setContent(cmds []command.Command) error {
 		}
 		cmds[0] = cmd
 		m.detailView.SetCommand(cmd)
-		m.logger.Debug("default cmd", cmds[0])
 	}
 
 	m.commandsView.SetContent(cmds)
@@ -378,6 +386,22 @@ func (m *main) fechFullCommand(id string) (command.Command, error) {
 	defer cancel()
 
 	return m.commandManager.GetOne(ctx, id)
+}
+
+func (m *main) saveCommand(cmd command.Command) error {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	cmd, err := m.commandManager.Add(ctx, cmd)
+	if err != nil {
+		return err
+	}
+
+	idx := m.commandsView.AddItem(cmd)
+	m.commandsView.Select(idx)
+	m.detailView.SetCommand(cmd)
+
+	return nil
 }
 
 func relativeDimensions(w, h int, pw, ph float32) (width, height int) {
