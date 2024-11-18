@@ -12,6 +12,7 @@ type keyMap struct {
 	new              key.Binding
 	nextParamKey     key.Binding
 	previousParamKey key.Binding
+	delete           key.Binding
 }
 
 var defaultKeyMap = keyMap{
@@ -36,6 +37,9 @@ var defaultKeyMap = keyMap{
 	new: key.NewBinding(
 		key.WithKeys("n"),
 		key.WithHelp("n", "new")),
+	delete: key.NewBinding(
+		key.WithKeys("backspace"),
+		key.WithHelp("backspace", "delete")),
 	nextParamKey: key.NewBinding(
 		key.WithKeys("tab"),
 		key.WithHelp("tab", "next param"),
@@ -53,6 +57,7 @@ func (km keyMap) ShortHelp() []key.Binding {
 		km.discardSearch,
 		km.enter,
 		km.new,
+		km.delete,
 	}
 }
 

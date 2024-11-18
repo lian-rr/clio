@@ -82,8 +82,6 @@ func (s *Sql) Save(ctx context.Context, cmd command.Command) error {
 		}
 	}
 
-	// TODO: add creating or getting the tags and setting the relationship
-
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("error commiting transaction: %w", err)
 	}
@@ -172,6 +170,15 @@ func (s *Sql) SearchCommand(ctx context.Context, term string) ([]command.Command
 	}
 
 	return cmds, nil
+}
+
+// DeleteCommand removes a command and it's params.
+func (s *Sql) DeleteCommand(ctx context.Context, id uuid.UUID) error {
+	_, err := s.db.ExecContext(ctx, sqlite.DeleteCommand, id.String())
+	if err != nil {
+		return fmt.Errorf("error removing command with ID %q: %w", id, err)
+	}
+	return nil
 }
 
 // Close closes the db driver.

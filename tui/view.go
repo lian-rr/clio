@@ -226,6 +226,15 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
+	case key.Matches(msg, m.keys.delete):
+		item, ok := m.commandsView.selectedItem()
+		if !ok {
+			break
+		}
+
+		if err := m.removeCommand(*item.cmd); err != nil {
+			m.logger.Error("error removing command", slog.Any("command", *item.cmd), slog.Any("error", err))
+		}
 	default:
 		m.commandsView, cmd = m.commandsView.Update(msg)
 		item, ok := m.commandsView.selectedItem()
@@ -234,7 +243,7 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		}
 
 		if !item.loaded {
-			c, err := m.commandManager.GetOne(m.ctx, item.cmd.ID.String())
+			c, err := m.fechFullCommand(item.cmd.ID.String())
 			if err != nil {
 				m.logger.Error("error fetching command details", slog.Any("error", err))
 				break
@@ -400,6 +409,28 @@ func (m *main) saveCommand(cmd command.Command) error {
 	idx := m.commandsView.AddItem(cmd)
 	m.commandsView.Select(idx)
 	m.detailView.SetCommand(cmd)
+
+	return nil
+}
+
+func (m *main) removeCommand(cmd command.Command) error {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	err := m.commandManager.DeleteCommand(ctx, cmd.ID.String())
+	if err != nil {
+		return err
+	}
+
+	toSelectPos := m.commandsView.RemoveSelectedItem()
+	if toSelectPos >= 0 {
+		m.commandsView.Select(toSelectPos)
+		if item, ok := m.commandsView.selectedItem(); ok {
+			m.detailView.SetCommand(*item.cmd)
+		}
+	} else {
+		m.detailView.SetCommand(command.Command{})
+	}
 
 	return nil
 }

@@ -16,26 +16,18 @@ const (
 		command VARCHAR(16),
 		name VARCHAR(64) NOT NULL,
 		description VARCHAR(255),
-		value VARCHAR(32)
+		value VARCHAR(32),
+
+		CONSTRAINT fk_command
+			FOREIGN KEY (command)
+			REFERENCES commands(id)
+			ON DELETE CASCADE
 	)`
 
 	SearchTableQuery = `
 	CREATE VIRTUAL TABLE IF NOT EXISTS commands_fts
 	USING fts5(id UNINDEXED, name, command, description);
 	`
-
-	// TODO: thing more regarding this part
-	TagsTableQuery = `
-	CREATE TABLE IF NOT EXISTS tags (
-		tag VARCHAR(16) PRIMARY KEY
-	)`
-
-	TagsAndCommandsTableQuery = `
-	CREATE TABLE IF NOT EXISTS tags_commands (
-		tag VARCHAR(16),
-		command VARCHAR(16),
-		PRIMARY KEY (tag, command)
-	)`
 )
 
 // triggers
@@ -105,4 +97,6 @@ const (
 		ON c.id = fts.id
 	WHERE commands_fts MATCH ?
 	ORDER BY bm25(commands_fts, 0, 15, 10, 5)`
+
+	DeleteCommand = `DELETE FROM commands WHERE commands.id = ?`
 )

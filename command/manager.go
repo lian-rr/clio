@@ -12,6 +12,7 @@ type store interface {
 	GetCommandByID(context.Context, uuid.UUID) (Command, error)
 	SearchCommand(context.Context, string) ([]Command, error)
 	ListCommands(context.Context) ([]Command, error)
+	DeleteCommand(context.Context, uuid.UUID) error
 }
 
 // Manager handles the command admin operations.
@@ -77,4 +78,14 @@ func (m *Manager) GetAll(ctx context.Context) ([]Command, error) {
 	}
 
 	return commands, nil
+}
+
+// GetCommand returns a command by ID.
+func (m *Manager) DeleteCommand(ctx context.Context, rawID string) error {
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		return err
+	}
+
+	return m.store.DeleteCommand(ctx, id)
 }

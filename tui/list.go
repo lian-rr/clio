@@ -63,6 +63,16 @@ func (l *listView) AddItem(cmd command.Command) int {
 	return idx
 }
 
+func (l *listView) RemoveSelectedItem() int {
+	idx := l.list.Index()
+	l.list.RemoveItem(idx)
+
+	if idx-1 < 0 {
+		return -1
+	}
+	return idx - 1
+}
+
 func (l *listView) Select(idx int) {
 	l.list.Select(idx)
 }
