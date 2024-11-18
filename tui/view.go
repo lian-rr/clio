@@ -17,18 +17,19 @@ const title = "KEEP"
 
 const minCharCount = 3
 
-type view struct {
+type main struct {
 	ctx            context.Context
 	commandManager manager
 
 	keys   keyMap
 	logger *slog.Logger
 
-	// panels
+	// views
 	searchView   searchView
 	commandsView listView
 	detailView   detailsView
 	executeView  executeView
+	editView     editView
 	help         help.Model
 
 	currentMode mode
@@ -40,8 +41,8 @@ type view struct {
 	output string
 }
 
-func newView(ctx context.Context, manager manager, logger *slog.Logger) (*view, error) {
-	vi := view{
+func newMain(ctx context.Context, manager manager, logger *slog.Logger) (*main, error) {
+	m := main{
 		ctx:            ctx,
 		commandManager: manager,
 		titleStyle:     titleStyle,
@@ -50,56 +51,69 @@ func newView(ctx context.Context, manager manager, logger *slog.Logger) (*view, 
 		searchView:     newSearchView(),
 		detailView:     newDetailsView(logger),
 		executeView:    newExecuteView(logger),
+		editView:       newEditView(logger),
 		help:           help.New(),
 		currentMode:    navigationMode,
 		logger:         logger,
 	}
 
-	cmds, err := vi.fechCommands()
+	cmds, err := m.fechCommands()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := vi.setContent(cmds); err != nil {
+	if err := m.setContent(cmds); err != nil {
 		return nil, err
 	}
 
-	return &vi, nil
+	return &m, nil
 }
 
-func (v *view) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// key input
 	case tea.KeyMsg:
 		// exit the app
-		if key.Matches(msg, v.keys.forceQuit) {
-			return v, tea.Quit
+		if key.Matches(msg, m.keys.forceQuit) {
+			return m, tea.Quit
 		}
-		return v, v.inputRouter(msg)
+		return m, m.inputRouter(msg)
 	// window resize
 	case tea.WindowSizeMsg:
 		hor, ver := docStyle.GetFrameSize()
-		v.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
-		return v, nil
+		m.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
+		return m, nil
 	// mode update
 	case updateModeMsg:
-		msg.updateMode(v)
-		return v, nil
+		msg.updateMode(m)
+		return m, nil
 	// handle outcome
 	case outcomeMsg:
-		v.logger.Debug("outcome", slog.String("command", msg.outcome))
-		v.output = msg.outcome
-		return v, tea.Quit
+		m.logger.Debug("output: ", slog.String("command", msg.output))
+		m.output = msg.output
+		return m, tea.Quit
+	case newCmdMsg:
+		m.logger.Debug("new command to store", slog.Any("command", msg.command))
+		if err := m.saveCommand(msg.command); err != nil {
+			m.logger.Error("error storing new command", slog.Any("error", err))
+		}
+		return m, changeMode(navigationMode, nil)
+	case editCmdMsg:
+		m.logger.Debug("command to edit", slog.Any("command", msg.command))
+		return m, changeMode(navigationMode, nil)
 	}
-	return v, nil
+	return m, nil
 }
 
-func (v *view) View() string {
+func (m *main) View() string {
 	var detailPanelContent string
-	if v.currentMode == executeMode {
-		detailPanelContent = v.executeView.View()
-	} else {
-		detailPanelContent = v.detailView.View()
+	switch m.currentMode {
+	case executeMode:
+		detailPanelContent = m.executeView.View()
+	case editMode:
+		detailPanelContent = m.editView.View()
+	default:
+		detailPanelContent = m.detailView.View()
 	}
 
 	return docStyle.Render(
@@ -112,132 +126,137 @@ func (v *view) View() string {
 					borderStyle.BorderRight(true).Render(
 						lipgloss.JoinVertical(
 							lipgloss.Top,
-							v.searchView.View(),
-							containerStyle.Render(v.commandsView.View()),
+							m.searchView.View(),
+							containerStyle.Render(m.commandsView.View()),
 						),
 					),
 					// 2nd column
 					lipgloss.JoinVertical(
 						lipgloss.Top,
-						v.titleStyle.Render(title),
+						m.titleStyle.Render(title),
 						detailPanelContent,
 					)),
 			),
-			helpStyle.Render(v.help.View(v.keys)),
+			helpStyle.Render(m.help.View(m.keys)),
 		),
 	)
 }
 
-func (v *view) Init() tea.Cmd {
+func (m *main) Init() tea.Cmd {
 	tea.SetWindowTitle(title)
 	return nil
 }
 
-func (v *view) updateComponentsDimensions(width, height int) {
+func (m *main) updateComponentsDimensions(width, height int) {
 	// help
-	v.help.Width = width
+	m.help.Width = width
 
 	// command explorer
 	w, h := relativeDimensions(width, height, .20, .85)
-	v.commandsView.SetSize(w, h)
+	m.commandsView.SetSize(w, h)
 
 	// search bar
-	v.searchView.SetWidth(w)
+	m.searchView.SetWidth(w)
 
 	w, h = relativeDimensions(width, height, .75, .85)
 	// title
-	v.titleStyle = v.titleStyle.Width(w)
+	m.titleStyle = m.titleStyle.Width(w)
 
 	// detail view
-	v.detailView.SetSize(w, h)
+	m.detailView.SetSize(w, h)
+
+	w, h = relativeDimensions(width, height, .74, .92)
 
 	// execute view
-	v.executeView.SetSize(w, h)
+	m.executeView.SetSize(w, h)
 
-	v.logger.Debug("execute view",
-		slog.Int("width", width),
-		slog.Int("rel width", w),
-		slog.Int("height", height),
-		slog.Int("rel height", h),
-	)
+	// edit view
+	m.editView.SetSize(w, h)
 }
 
-func (v *view) inputRouter(msg tea.KeyMsg) tea.Cmd {
-	switch v.currentMode {
+func (m *main) inputRouter(msg tea.KeyMsg) tea.Cmd {
+	switch m.currentMode {
 	case searchMode:
-		return v.handleSearchInput(msg)
+		return m.handleSearchInput(msg)
 	case detailMode:
-		return v.handleDetailInput(msg)
+		return m.handleDetailInput(msg)
 	case executeMode:
-		return v.handleExecuteInput(msg)
+		return m.handleExecuteInput(msg)
+	case editMode:
+		return m.handleEditInput(msg)
 	default:
-		return v.handleNavigationInput(msg)
+		return m.handleNavigationInput(msg)
 	}
 }
 
-func (v *view) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
+func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, v.keys.quit):
+	case key.Matches(msg, m.keys.quit):
 		return tea.Quit
-	case key.Matches(msg, v.keys.search):
-		return changeMode(searchMode, func(m *view) {
+	case key.Matches(msg, m.keys.search):
+		return changeMode(searchMode, func(m *main) {
 			m.searchView.Focus()
 		})
-	case key.Matches(msg, v.keys.discardSearch):
-		v.searchView.Reset()
-		cmds, err := v.fechCommands()
+	case key.Matches(msg, m.keys.discardSearch):
+		m.searchView.Reset()
+		cmds, err := m.fechCommands()
 		if err != nil {
-			v.logger.Error("error getting all commands",
-				slog.Any("error", err),
-			)
+			m.logger.Error("error getting all commands", slog.Any("error", err))
 			break
 		}
 
-		v.setContent(cmds)
-	case key.Matches(msg, v.keys.enter):
-		item, ok := v.commandsView.selectedItem()
+		m.setContent(cmds)
+	case key.Matches(msg, m.keys.enter):
+		item, ok := m.commandsView.selectedItem()
 		if !ok {
 			break
 		}
 
-		return changeMode(executeMode, func(m *view) {
+		return changeMode(executeMode, func(m *main) {
 			err := m.executeView.SetCommand(*item.cmd)
 			if err != nil {
-				m.logger.Error("error setting detail view content", slog.Any("error", err))
+				m.logger.Error("error setting execute view content", slog.Any("error", err))
+			}
+		})
+	case key.Matches(msg, m.keys.new):
+		return changeMode(editMode, func(m *main) {
+			err := m.editView.SetCommand(newCommandMode, nil)
+			if err != nil {
+				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
 	default:
-		v.commandsView, cmd = v.commandsView.Update(msg)
-		item, ok := v.commandsView.selectedItem()
+		m.commandsView, cmd = m.commandsView.Update(msg)
+		item, ok := m.commandsView.selectedItem()
 		if !ok {
 			break
 		}
 
 		if !item.loaded {
-			c, err := v.commandManager.GetOne(v.ctx, item.cmd.ID.String())
+			c, err := m.commandManager.GetOne(m.ctx, item.cmd.ID.String())
 			if err != nil {
-				v.logger.Error("error fetching command details", slog.Any("error", err))
+				m.logger.Error("error fetching command details", slog.Any("error", err))
 				break
 			}
 
 			item.cmd.Params = c.Params
 			item.loaded = true
 
-			v.logger.Debug("command details fetched successfully", slog.Any("command", c))
+			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		if err := v.detailView.SetCommand(*item.cmd); err != nil {
-			v.logger.Error("error setting detail view content", slog.Any("error", err))
+		if err := m.detailView.SetCommand(*item.cmd); err != nil {
+			m.logger.Error("error setting detail view content", slog.Any("error", err))
 		}
 	}
 	return cmd
 }
 
-func (v *view) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
+func (m *main) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, v.keys.back):
-		return changeMode(navigationMode, func(m *view) {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, func(m *main) {
 			item, ok := m.commandsView.selectedItem()
 			if !ok {
 				return
@@ -251,11 +270,11 @@ func (v *view) handleDetailInput(msg tea.KeyMsg) tea.Cmd {
 	}
 }
 
-func (v *view) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
+func (m *main) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, v.keys.back):
-		return changeMode(navigationMode, func(m *view) {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, func(m *main) {
 			item, ok := m.commandsView.selectedItem()
 			if !ok {
 				return
@@ -265,90 +284,124 @@ func (v *view) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 			}
 		})
 	default:
-		v.executeView, cmd = v.executeView.Update(msg)
+		m.executeView, cmd = m.executeView.Update(msg)
 		return cmd
 	}
 }
 
-func (v *view) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
+func (m *main) handleEditInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	switch {
+	case key.Matches(msg, m.keys.back):
+		return changeMode(navigationMode, func(m *main) {
+			item, ok := m.commandsView.selectedItem()
+			if !ok {
+				return
+			}
+			if err := m.detailView.SetCommand(*item.cmd); err != nil {
+				m.logger.Error("error setting detail view content", slog.Any("error", err))
+			}
+		})
+	default:
+		m.editView, cmd = m.editView.Update(msg)
+		return cmd
+	}
+}
+
+func (m *main) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 	getAll := func() {
-		cmds, err := v.fechCommands()
+		cmds, err := m.fechCommands()
 		if err != nil {
-			v.logger.Error("error getting all commands", slog.Any("error", err))
+			m.logger.Error("error getting all commands", slog.Any("error", err))
 			return
 		}
 
-		v.setContent(cmds)
+		m.setContent(cmds)
 	}
 
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, v.keys.back):
+	case key.Matches(msg, m.keys.back):
 		return changeMode(navigationMode, nil)
-	case key.Matches(msg, v.keys.discardSearch):
-		v.searchView.Reset()
+	case key.Matches(msg, m.keys.discardSearch):
+		m.searchView.Reset()
 		getAll()
 		return changeMode(navigationMode, nil)
-	case key.Matches(msg, v.keys.enter):
-		v.searchView.Unfocus()
+	case key.Matches(msg, m.keys.enter):
+		m.searchView.Unfocus()
 		return changeMode(navigationMode, nil)
 	default:
-		v.searchView, cmd = v.searchView.Update(msg)
+		m.searchView, cmd = m.searchView.Update(msg)
 
-		terms := v.searchView.Content()
+		terms := m.searchView.Content()
 		if len(terms) >= minCharCount {
-			v.searching = true
-			cmds, err := v.searchCommands(terms)
+			m.searching = true
+			cmds, err := m.searchCommands(terms)
 			if err != nil {
-				v.logger.Error("error searching for commands",
+				m.logger.Error("error searching for commands",
 					slog.String("terms", terms),
 					slog.Any("error", err),
 				)
 				break
 			}
-			v.setContent(cmds)
-		} else if v.searching && len(terms) == 0 {
-			v.searching = false
+			m.setContent(cmds)
+		} else if m.searching && len(terms) == 0 {
+			m.searching = false
 			getAll()
 		}
 	}
 	return cmd
 }
 
-func (v *view) setContent(cmds []command.Command) error {
+func (m *main) setContent(cmds []command.Command) error {
 	if len(cmds) > 0 {
-		cmd, err := v.fechFullCommand(cmds[0].ID.String())
+		cmd, err := m.fechFullCommand(cmds[0].ID.String())
 		if err != nil {
 			return err
 		}
 		cmds[0] = cmd
-		v.detailView.SetCommand(cmd)
-		v.logger.Debug("default cmd", cmds[0])
+		m.detailView.SetCommand(cmd)
 	}
 
-	v.commandsView.SetContent(cmds)
+	m.commandsView.SetContent(cmds)
 	return nil
 }
 
-func (v *view) fechCommands() ([]command.Command, error) {
-	ctx, cancel := context.WithTimeout(v.ctx, time.Millisecond*300)
+func (m *main) fechCommands() ([]command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*300)
 	defer cancel()
 
-	return v.commandManager.GetAll(ctx)
+	return m.commandManager.GetAll(ctx)
 }
 
-func (v *view) searchCommands(term string) ([]command.Command, error) {
-	ctx, cancel := context.WithTimeout(v.ctx, time.Millisecond*300)
+func (m *main) searchCommands(term string) ([]command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*300)
 	defer cancel()
 
-	return v.commandManager.Search(ctx, term)
+	return m.commandManager.Search(ctx, term)
 }
 
-func (v *view) fechFullCommand(id string) (command.Command, error) {
-	ctx, cancel := context.WithTimeout(v.ctx, time.Millisecond*200)
+func (m *main) fechFullCommand(id string) (command.Command, error) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
 	defer cancel()
 
-	return v.commandManager.GetOne(ctx, id)
+	return m.commandManager.GetOne(ctx, id)
+}
+
+func (m *main) saveCommand(cmd command.Command) error {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	cmd, err := m.commandManager.Add(ctx, cmd)
+	if err != nil {
+		return err
+	}
+
+	idx := m.commandsView.AddItem(cmd)
+	m.commandsView.Select(idx)
+	m.detailView.SetCommand(cmd)
+
+	return nil
 }
 
 func relativeDimensions(w, h int, pw, ph float32) (width, height int) {

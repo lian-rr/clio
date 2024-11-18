@@ -3,12 +3,15 @@ package tui
 import "github.com/charmbracelet/bubbles/key"
 
 type keyMap struct {
-	search        key.Binding
-	discardSearch key.Binding
-	quit          key.Binding
-	forceQuit     key.Binding
-	enter         key.Binding
-	back          key.Binding
+	search           key.Binding
+	discardSearch    key.Binding
+	quit             key.Binding
+	forceQuit        key.Binding
+	enter            key.Binding
+	back             key.Binding
+	new              key.Binding
+	nextParamKey     key.Binding
+	previousParamKey key.Binding
 }
 
 var defaultKeyMap = keyMap{
@@ -26,10 +29,21 @@ var defaultKeyMap = keyMap{
 		key.WithHelp("ctrl+c", "force exit")),
 	enter: key.NewBinding(
 		key.WithKeys("enter"),
-		key.WithHelp("enter", "enter")),
+		key.WithHelp("enter", "compose")),
 	back: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back")),
+	new: key.NewBinding(
+		key.WithKeys("n"),
+		key.WithHelp("n", "new")),
+	nextParamKey: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "next param"),
+	),
+	previousParamKey: key.NewBinding(
+		key.WithKeys("shift+tab"),
+		key.WithHelp("shift+tab", "previous param"),
+	),
 }
 
 func (km keyMap) ShortHelp() []key.Binding {
@@ -38,6 +52,7 @@ func (km keyMap) ShortHelp() []key.Binding {
 		km.search,
 		km.discardSearch,
 		km.enter,
+		km.new,
 	}
 }
 

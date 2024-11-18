@@ -15,13 +15,13 @@ const (
 )
 
 type updateModeMsg struct {
-	updateMode func(*view)
+	updateMode func(*main)
 }
 
-func changeMode(newMode mode, handler func(*view)) tea.Cmd {
+func changeMode(newMode mode, handler func(*main)) tea.Cmd {
 	return func() tea.Msg {
 		return updateModeMsg{
-			updateMode: func(m *view) {
+			updateMode: func(m *main) {
 				m.currentMode = newMode
 				if handler != nil {
 					handler(m)

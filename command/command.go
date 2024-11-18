@@ -11,10 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
-const paramsRegex = `{{\s?\.\w+\s?}}`
+var regex = regexp.MustCompile(`{{\s?\.\w+\s?}}`)
 
-var reg = regexp.MustCompile(paramsRegex)
-
+// ErrInvalidNumOfParams returned when the number of params provided doesn't match the command
 var ErrInvalidNumOfParams = errors.New("invalid number of params provided")
 
 type (
@@ -45,40 +44,71 @@ type (
 type cmdOpt func(*Command) error
 
 // New returns a new Command.
-func New(name string, desc string, cmd string, opts ...cmdOpt) (Command, error) {
-	id, err := uuid.NewV6()
+func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, error) {
+	id, err := uuid.NewV7()
 	if err != nil {
 		return Command{}, err
 	}
 
-	tmp, err := template.New(name).Parse(cmd)
-	if err != nil {
-		return Command{}, fmt.Errorf("invalid command: %w", err)
-	}
-
-	cont := Command{
+	cmd := Command{
 		ID:          id,
 		Name:        name,
 		Description: desc,
-		Command:     cmd,
-		tmp:         tmp,
+		Command:     rawCmd,
 	}
 
 	for _, opt := range opts {
-		if err := opt(&cont); err != nil {
+		if err := opt(&cmd); err != nil {
 			return Command{}, err
 		}
 	}
 
-	if len(cont.Params) == 0 {
-		cont.Params = parseParams(cmd)
+	if err := cmd.Build(); err != nil {
+		return Command{}, err
 	}
 
-	return cont, nil
+	return cmd, nil
+}
+
+// Build builds the internal attributes (template and params).
+func (c *Command) Build() error {
+	if c.ID == uuid.Nil {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		c.ID = id
+	}
+
+	if c.tmp == nil {
+		tmp, err := template.New(c.Name).Parse(c.Command)
+		if err != nil {
+			return fmt.Errorf("invalid command: %w", err)
+		}
+		c.tmp = tmp
+	}
+
+	news := parseParams(c.Command)
+	params := make([]Parameter, 0, len(news))
+	for _, param := range news {
+		for j := 0; j < len(c.Params); j++ {
+			old := c.Params[j]
+			if param.Name == old.Name {
+				param.ID = old.ID
+				param.Description = old.Description
+				param.DefaultValue = old.DefaultValue
+				break
+			}
+		}
+		params = append(params, param)
+	}
+
+	c.Params = params
+	return nil
 }
 
 // Compile returns the command with the arguments applied.
-func (c Command) Compile(args []Argument) (string, error) {
+func (c *Command) Compile(args []Argument) (string, error) {
 	if c.tmp == nil {
 		tmp, err := template.New(c.Name).Parse(c.Command)
 		if err != nil {
@@ -105,7 +135,7 @@ func (c Command) Compile(args []Argument) (string, error) {
 }
 
 func parseParams(raw string) []Parameter {
-	rawParams := reg.FindAllString(raw, -1)
+	rawParams := regex.FindAllString(raw, -1)
 
 	params := make([]Parameter, 0, len(rawParams))
 	for _, rp := range rawParams {

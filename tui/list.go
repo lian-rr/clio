@@ -51,6 +51,22 @@ func (l *listView) SetContent(cmds []command.Command) {
 	l.list.SetItems(toListItem(cmds))
 }
 
+func (l *listView) AddItem(cmd command.Command) int {
+	idx := len(l.list.Items())
+	l.list.InsertItem(idx, &listItem{
+		title:  cmd.Name,
+		desc:   cmd.Description,
+		cmd:    &cmd,
+		loaded: true,
+	})
+
+	return idx
+}
+
+func (l *listView) Select(idx int) {
+	l.list.Select(idx)
+}
+
 func toListItem(cmds []command.Command) []list.Item {
 	items := make([]list.Item, 0, len(cmds))
 	for _, cmd := range cmds {

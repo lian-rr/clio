@@ -87,7 +87,7 @@ func (dc *detailsView) SetCommand(cmd command.Command) error {
 	dc.paramsTable.Data(table.NewStringData(rows...))
 
 	dc.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Title"), headerStyle.Render(cmd.Name)},
+		{labelStyle.Render("Name"), headerStyle.Render(cmd.Name)},
 		{labelStyle.Render("Description"), headerStyle.Render(cmd.Description)},
 		{labelStyle.Render("Command"), headerStyle.Render(b.String())},
 	}...))
