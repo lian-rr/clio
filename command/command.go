@@ -45,15 +45,7 @@ type cmdOpt func(*Command) error
 
 // New returns a new Command.
 func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, error) {
-<<<<<<< HEAD
-<<<<<<< HEAD
 	id, err := uuid.NewV7()
-=======
-	id, err := uuid.NewV6()
->>>>>>> ae0594b (command Build method for reconstructing the internal values of the)
-=======
-	id, err := uuid.NewV7()
->>>>>>> 8e3f686 (new command working)
 	if err != nil {
 		return Command{}, err
 	}
@@ -80,10 +72,6 @@ func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, erro
 
 // Build builds the internal attributes (template and params).
 func (c *Command) Build() error {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8e3f686 (new command working)
 	if c.ID == uuid.Nil {
 		id, err := uuid.NewV7()
 		if err != nil {
@@ -92,11 +80,6 @@ func (c *Command) Build() error {
 		c.ID = id
 	}
 
-<<<<<<< HEAD
-=======
->>>>>>> ae0594b (command Build method for reconstructing the internal values of the)
-=======
->>>>>>> 8e3f686 (new command working)
 	if c.tmp == nil {
 		tmp, err := template.New(c.Name).Parse(c.Command)
 		if err != nil {
@@ -105,10 +88,6 @@ func (c *Command) Build() error {
 		c.tmp = tmp
 	}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8e3f686 (new command working)
 	news := parseParams(c.Command)
 	params := make([]Parameter, 0, len(news))
 	for _, param := range news {
@@ -122,21 +101,9 @@ func (c *Command) Build() error {
 			}
 		}
 		params = append(params, param)
-<<<<<<< HEAD
 	}
 
 	c.Params = params
-=======
-	if len(c.Params) == 0 {
-		c.Params = parseParams(c.Command)
-	}
-
->>>>>>> ae0594b (command Build method for reconstructing the internal values of the)
-=======
-	}
-
-	c.Params = params
->>>>>>> 8e3f686 (new command working)
 	return nil
 }
 

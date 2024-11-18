@@ -177,7 +177,8 @@ func (v *editView) View() string {
 
 	v.paramsTable.Data(table.NewStringData(rows...))
 
-commands
+	var title string
+	switch v.mode {
 	case editCommandMode:
 		title = "Edit Command"
 	default:
