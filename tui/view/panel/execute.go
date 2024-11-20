@@ -95,6 +95,7 @@ func (v *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
 
 // View returns the string representation of the panel.
 func (v *ExecutePanel) View() string {
+	v.logger.Debug("compiling command", slog.Any("command", v.command))
 	if v.command == nil {
 		return ""
 	}
@@ -118,6 +119,8 @@ func (v *ExecutePanel) View() string {
 		)
 		return ""
 	}
+
+	v.logger.Debug("compiled command", slog.Any("out", outCommand))
 
 	w := v.width - v.contentStyle.GetHorizontalBorderSize()
 	h := v.height - v.contentStyle.GetVerticalFrameSize()
@@ -155,6 +158,7 @@ func (v *ExecutePanel) SetCommand(cmd command.Command) error {
 	rows := make([][]string, 0, len(cmd.Params))
 	orderedParams := make([]string, 0, len(cmd.Params))
 	v.paramInputs = make(map[string]*textinput.Model, len(cmd.Params))
+
 	for _, param := range cmd.Params {
 		rows = append(rows, []string{param.Name, param.Description, param.DefaultValue})
 
@@ -177,6 +181,7 @@ func (v *ExecutePanel) SetCommand(cmd command.Command) error {
 		v.paramInputs[orderedParams[0]].Focus()
 	}
 
+	v.logger.Debug("command to execute set", slog.Any("command", cmd))
 	return nil
 }
 
@@ -185,7 +190,6 @@ func (v *ExecutePanel) SetSize(width, height int) {
 	v.width = width
 	v.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
-	v.infoTable.Width(w)
 	v.paramsTable.Width(w)
 }
 

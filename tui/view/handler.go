@@ -31,10 +31,10 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 		return tea.Quit
 	case key.Matches(msg, m.keys.Search):
 		return changeFocus(searchFocus, func(m *Main) {
-			m.searchView.Focus()
+			m.searchPanel.Focus()
 		})
 	case key.Matches(msg, m.keys.DiscardSearch):
-		m.searchView.Reset()
+		m.searchPanel.Reset()
 		cmds, err := m.fechCommands()
 		if err != nil {
 			m.logger.Error("error getting all commands", slog.Any("error", err))
@@ -43,38 +43,38 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 		m.setContent(cmds)
 	case key.Matches(msg, m.keys.Enter):
-		item, ok := m.commandsView.SelectedCommand()
+		item, ok := m.explorerPanel.SelectedCommand()
 		if !ok {
 			break
 		}
 
 		return changeFocus(executeFocus, func(m *Main) {
-			err := m.executeView.SetCommand(*item.Command)
+			err := m.executePanel.SetCommand(*item.Command)
 			if err != nil {
 				m.logger.Error("error setting execute view content", slog.Any("error", err))
 			}
 		})
 	case key.Matches(msg, m.keys.New):
 		return changeFocus(editFocus, func(m *Main) {
-			err := m.editView.SetCommand(panel.NewCommandMode, nil)
+			err := m.editPanel.SetCommand(panel.NewCommandMode, nil)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
 	case key.Matches(msg, m.keys.Edit):
-		item, ok := m.commandsView.SelectedCommand()
+		item, ok := m.explorerPanel.SelectedCommand()
 		if !ok {
 			break
 		}
 
 		return changeFocus(editFocus, func(m *Main) {
-			err := m.editView.SetCommand(panel.EditCommandMode, item.Command)
+			err := m.editPanel.SetCommand(panel.EditCommandMode, item.Command)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
 	case key.Matches(msg, m.keys.Delete):
-		item, ok := m.commandsView.SelectedCommand()
+		item, ok := m.explorerPanel.SelectedCommand()
 		if !ok {
 			break
 		}
@@ -83,8 +83,8 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 			m.logger.Error("error removing command", slog.Any("command", *item.Command), slog.Any("error", err))
 		}
 	default:
-		m.commandsView, cmd = m.commandsView.Update(msg)
-		item, ok := m.commandsView.SelectedCommand()
+		m.explorerPanel, cmd = m.explorerPanel.Update(msg)
+		item, ok := m.explorerPanel.SelectedCommand()
 		if !ok {
 			break
 		}
@@ -101,7 +101,7 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		if err := m.detailView.SetCommand(*item.Command); err != nil {
+		if err := m.detailPanel.SetCommand(*item.Command); err != nil {
 			m.logger.Error("error setting detail view content", slog.Any("error", err))
 		}
 	}
@@ -113,16 +113,16 @@ func (m *Main) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		return changeFocus(navigationFocus, func(m *Main) {
-			item, ok := m.commandsView.SelectedCommand()
+			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
 				return
 			}
-			if err := m.detailView.SetCommand(*item.Command); err != nil {
+			if err := m.detailPanel.SetCommand(*item.Command); err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
 	default:
-		m.executeView, cmd = m.executeView.Update(msg)
+		m.executePanel, cmd = m.executePanel.Update(msg)
 		return cmd
 	}
 }
@@ -132,16 +132,16 @@ func (m *Main) handleEditInput(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		return changeFocus(navigationFocus, func(m *Main) {
-			item, ok := m.commandsView.SelectedCommand()
+			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
 				return
 			}
-			if err := m.detailView.SetCommand(*item.Command); err != nil {
+			if err := m.detailPanel.SetCommand(*item.Command); err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
 	default:
-		m.editView, cmd = m.editView.Update(msg)
+		m.editPanel, cmd = m.editPanel.Update(msg)
 		return cmd
 	}
 }
@@ -162,16 +162,16 @@ func (m *Main) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, m.keys.Back):
 		return changeFocus(navigationFocus, nil)
 	case key.Matches(msg, m.keys.DiscardSearch):
-		m.searchView.Reset()
+		m.searchPanel.Reset()
 		getAll()
 		return changeFocus(navigationFocus, nil)
 	case key.Matches(msg, m.keys.Enter):
-		m.searchView.Unfocus()
+		m.searchPanel.Unfocus()
 		return changeFocus(navigationFocus, nil)
 	default:
-		m.searchView, cmd = m.searchView.Update(msg)
+		m.searchPanel, cmd = m.searchPanel.Update(msg)
 
-		terms := m.searchView.Content()
+		terms := m.searchPanel.Content()
 		if len(terms) >= minCharCount {
 			m.searching = true
 			cmds, err := m.searchCommands(terms)

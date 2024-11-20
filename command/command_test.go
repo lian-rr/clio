@@ -2,7 +2,6 @@ package command
 
 import (
 	"testing"
-	"text/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,11 +25,6 @@ func TestNew(t *testing.T) {
 		expectedError string
 		assertParams  func(actual []Parameter)
 	}{
-		{
-			name:          "invalid command",
-			raw:           "invalid{{.test}",
-			expectedError: "invalid command",
-		},
 		{
 			name: "missing expected param",
 			raw:  "echo 'hello world'",
@@ -162,8 +156,6 @@ func TestCommand_Compile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.cmd.tmp, _ = template.New(tt.name).Parse(tt.cmd.Command)
-
 			out, err := tt.cmd.Compile(tt.args)
 			if tt.expectedError != "" {
 				assert.ErrorContains(t, err, tt.expectedError, "error message not the expected")

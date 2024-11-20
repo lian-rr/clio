@@ -116,6 +116,8 @@ func (v *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
 			v.logger.Warn("error building param", slog.Any("error", err))
 			break
 		}
+
+		v.logger.Debug("Done editing/creating command", slog.Any("command", v.cmd))
 		switch v.mode {
 		case NewCommandMode:
 			return *v, event.HandleNewCommandMsg(*v.cmd)
@@ -129,7 +131,7 @@ func (v *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
 		input, cmd = v.inputs[v.selectedInput].Update(msg)
 		v.inputs[v.selectedInput] = &input
 
-		// if command didn't changed
+		// command didn't changed
 		if v.selectedInput > cmdInputPos {
 			v.updateParams()
 		} else {
@@ -137,13 +139,6 @@ func (v *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
 				v.logger.Warn("error building cmd", slog.Any("error", err))
 			}
 		}
-
-		v.logger.Debug("cmd values updated",
-			slog.String("name", v.cmd.Name),
-			slog.String("desc", v.cmd.Description),
-			slog.String("command", v.cmd.Command),
-			slog.Any("params", v.cmd.Params),
-		)
 	}
 	return *v, cmd
 }
@@ -235,7 +230,6 @@ func (v *EditPanel) updateCommand() error {
 	cmd := v.inputs[cmdInputPos].Value()
 	if len(cmd) != len(v.cmd.Command) {
 		v.cmd.Command = v.inputs[cmdInputPos].Value()
-		v.logger.Debug("rebuilding command")
 		if err := v.cmd.Build(); err != nil {
 			return err
 		}

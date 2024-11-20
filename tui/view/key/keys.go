@@ -28,7 +28,7 @@ var DefaultMap = Map{
 		key.WithKeys("shift+tab"),
 		key.WithHelp("shift+tab", "all cmds")),
 	Quit: key.NewBinding(
-		key.WithKeys("esc", "q"),
+		key.WithKeys("esc"),
 		key.WithHelp("esc", "quit")),
 	ForceQuit: key.NewBinding(
 		key.WithKeys("ctrl+c"),

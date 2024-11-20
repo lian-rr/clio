@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -38,12 +39,12 @@ type Main struct {
 	logger *slog.Logger
 
 	// views
-	searchView   panel.SearchView
-	commandsView panel.ExplorerPanel
-	detailView   panel.DetailsPanel
-	executeView  panel.ExecutePanel
-	editView     panel.EditPanel
-	help         help.Model
+	searchPanel   panel.SearchView
+	explorerPanel panel.ExplorerPanel
+	detailPanel   panel.DetailsPanel
+	executePanel  panel.ExecutePanel
+	editPanel     panel.EditPanel
+	help          help.Model
 
 	focus     focus
 	searching bool
@@ -62,11 +63,11 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 		commandManager: manager,
 		titleStyle:     style.TitleStyle,
 		keys:           ckey.DefaultMap,
-		commandsView:   panel.NewExplorerPanel(),
-		searchView:     panel.NewSearchView(),
-		detailView:     panel.NewDetailsPanel(logger),
-		executeView:    panel.NewExecutePanel(logger),
-		editView:       panel.NewEditPanel(logger),
+		explorerPanel:  panel.NewExplorerPanel(),
+		searchPanel:    panel.NewSearchView(),
+		detailPanel:    panel.NewDetailsPanel(logger),
+		executePanel:   panel.NewExecutePanel(logger),
+		editPanel:      panel.NewEditPanel(logger),
 		help:           help.New(),
 		focus:          navigationFocus,
 		logger:         logger,
@@ -124,11 +125,11 @@ func (m *Main) View() string {
 	var detailPanelContent string
 	switch m.focus {
 	case executeFocus:
-		detailPanelContent = m.executeView.View()
+		detailPanelContent = m.executePanel.View()
 	case editFocus:
-		detailPanelContent = m.editView.View()
+		detailPanelContent = m.editPanel.View()
 	default:
-		detailPanelContent = m.detailView.View()
+		detailPanelContent = m.detailPanel.View()
 	}
 
 	return style.DocStyle.Render(
@@ -141,8 +142,8 @@ func (m *Main) View() string {
 					style.BorderStyle.BorderRight(true).Render(
 						lipgloss.JoinVertical(
 							lipgloss.Top,
-							m.searchView.View(),
-							style.ContainerStyle.Render(m.commandsView.View()),
+							m.searchPanel.View(),
+							style.ContainerStyle.Render(m.explorerPanel.View()),
 						),
 					),
 					// 2nd column
@@ -159,34 +160,34 @@ func (m *Main) View() string {
 
 func (m *Main) Init() tea.Cmd {
 	tea.SetWindowTitle(title)
-	return nil
+	return textinput.Blink
 }
 
 func (m *Main) updateComponentsDimensions(width, height int) {
 	// help
 	m.help.Width = width
 
-	// command explorer
+	// explorer panel
 	w, h := util.RelativeDimensions(width, height, .20, .85)
-	m.commandsView.SetSize(w, h)
+	m.explorerPanel.SetSize(w, h)
 
-	// search bar
-	m.searchView.SetWidth(w)
+	// search panel
+	m.searchPanel.SetWidth(w)
 
 	w, h = util.RelativeDimensions(width, height, .75, .85)
 	// title
 	m.titleStyle = m.titleStyle.Width(w)
 
-	// detail view
-	m.detailView.SetSize(w, h)
+	// detail panel
+	m.detailPanel.SetSize(w, h)
 
 	w, h = util.RelativeDimensions(width, height, .74, .92)
 
-	// execute view
-	m.executeView.SetSize(w, h)
+	// execute panel
+	m.executePanel.SetSize(w, h)
 
-	// edit view
-	m.editView.SetSize(w, h)
+	// edit panel
+	m.editPanel.SetSize(w, h)
 }
 
 func (m *Main) setContent(cmds []command.Command) error {
@@ -196,10 +197,10 @@ func (m *Main) setContent(cmds []command.Command) error {
 			return err
 		}
 		cmds[0] = cmd
-		m.detailView.SetCommand(cmd)
+		m.detailPanel.SetCommand(cmd)
 	}
 
-	m.commandsView.SetCommands(cmds)
+	m.explorerPanel.SetCommands(cmds)
 	return nil
 }
 
@@ -233,9 +234,9 @@ func (m *Main) saveCommand(cmd command.Command) error {
 		return err
 	}
 
-	idx := m.commandsView.AddCommand(cmd)
-	m.commandsView.Select(idx)
-	m.detailView.SetCommand(cmd)
+	idx := m.explorerPanel.AddCommand(cmd)
+	m.explorerPanel.Select(idx)
+	m.detailPanel.SetCommand(cmd)
 
 	return nil
 }
@@ -249,8 +250,8 @@ func (m *Main) editCommand(cmd command.Command) error {
 		return err
 	}
 
-	m.commandsView.RefreshCommand(newCmd)
-	m.detailView.SetCommand(newCmd)
+	m.explorerPanel.RefreshCommand(newCmd)
+	m.detailPanel.SetCommand(newCmd)
 	return nil
 }
 
@@ -263,14 +264,14 @@ func (m *Main) removeCommand(cmd command.Command) error {
 		return err
 	}
 
-	toSelectPos := m.commandsView.RemoveSelectedCommand()
+	toSelectPos := m.explorerPanel.RemoveSelectedCommand()
 	if toSelectPos >= 0 {
-		m.commandsView.Select(toSelectPos)
-		if item, ok := m.commandsView.SelectedCommand(); ok {
-			m.detailView.SetCommand(*item.Command)
+		m.explorerPanel.Select(toSelectPos)
+		if item, ok := m.explorerPanel.SelectedCommand(); ok {
+			m.detailPanel.SetCommand(*item.Command)
 		}
 	} else {
-		m.detailView.SetCommand(command.Command{})
+		m.detailPanel.SetCommand(command.Command{})
 	}
 
 	return nil
