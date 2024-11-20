@@ -36,7 +36,7 @@ func (p *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
 }
 
 func (p *SearchView) View() string {
-	return style.BorderStyle.BorderBottom(true).Render(
+	return style.Border.BorderBottom(true).Render(
 		lipgloss.JoinHorizontal(lipgloss.Left,
 			p.title+" ",
 			p.input.View(),

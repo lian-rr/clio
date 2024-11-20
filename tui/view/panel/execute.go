@@ -49,11 +49,11 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
-		titleStyle: style.LabelStyle.
+		titleStyle: style.Label.
 			BorderBottom(true).
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderBottom(true).
-			BorderForeground(style.SubtleStyle),
+			BorderForeground(style.Subtle),
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -122,7 +122,7 @@ func (p *ExecutePanel) View() string {
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
-	return style.BorderStyle.Render(
+	return style.Border.Render(
 		p.contentStyle.
 			Width(w).
 			Height(h).
@@ -131,7 +131,7 @@ func (p *ExecutePanel) View() string {
 					lipgloss.Center,
 					p.titleStyle.Render("Compose"),
 					p.infoTable.Render(),
-					style.BorderStyle.Render(outCommand),
+					style.Border.Render(outCommand),
 					p.paramsTable.Render(),
 				),
 			))
@@ -149,8 +149,8 @@ func (p *ExecutePanel) SetCommand(cmd command.Command) error {
 	p.command = &cmd
 
 	p.infoTable.Data(table.NewStringData([][]string{
-		{style.LabelStyle.Render("Name"), cmd.Name},
-		{style.LabelStyle.Render("Description"), cmd.Description},
+		{style.Label.Render("Name"), cmd.Name},
+		{style.Label.Render("Description"), cmd.Description},
 	}...))
 
 	rows := make([][]string, 0, len(cmd.Params))

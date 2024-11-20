@@ -51,7 +51,7 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 	m := Main{
 		ctx:            ctx,
 		commandManager: manager,
-		titleStyle:     style.TitleStyle,
+		titleStyle:     style.Title,
 		keys:           ckey.DefaultMap,
 		explorerPanel:  panel.NewExplorerPanel(),
 		searchPanel:    panel.NewSearchView(),
@@ -86,7 +86,7 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.handleInput(msg)
 	// window resize
 	case tea.WindowSizeMsg:
-		hor, ver := style.DocStyle.GetFrameSize()
+		hor, ver := style.Document.GetFrameSize()
 		m.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
 		return m, nil
 	// mode update
@@ -122,18 +122,18 @@ func (m *Main) View() string {
 		detailPanelContent = m.detailPanel.View()
 	}
 
-	return style.DocStyle.Render(
+	return style.Document.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
-			style.ContainerStyle.Render(
+			style.Container.Render(
 				lipgloss.JoinHorizontal(
 					lipgloss.Left,
 					// 1st column
-					style.BorderStyle.BorderRight(true).Render(
+					style.Border.BorderRight(true).Render(
 						lipgloss.JoinVertical(
 							lipgloss.Top,
 							m.searchPanel.View(),
-							style.ContainerStyle.Render(m.explorerPanel.View()),
+							style.Container.Render(m.explorerPanel.View()),
 						),
 					),
 					// 2nd column
@@ -143,7 +143,7 @@ func (m *Main) View() string {
 						detailPanelContent,
 					)),
 			),
-			style.HelpStyle.Render(m.help.View(m.keys)),
+			style.Help.Render(m.help.View(m.keys)),
 		),
 	)
 }

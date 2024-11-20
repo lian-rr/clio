@@ -57,7 +57,7 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 		infoTable:   infoTable,
 		paramsTable: params,
 		// view:        viewport.New(0, 0),
-		titleStyle: style.TitleStyle,
+		titleStyle: style.Title,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -79,9 +79,9 @@ func (p *DetailsPanel) SetCommand(cmd command.Command) error {
 	p.paramsTable.Data(table.NewStringData(rows...))
 
 	p.infoTable.Data(table.NewStringData([][]string{
-		{style.LabelStyle.Render("Name"), style.HeaderStyle.Render(cmd.Name)},
-		{style.LabelStyle.Render("Description"), style.HeaderStyle.Render(cmd.Description)},
-		{style.LabelStyle.Render("Command"), style.HeaderStyle.Render(b.String())},
+		{style.Label.Render("Name"), style.Header.Render(cmd.Name)},
+		{style.Label.Render("Description"), style.Header.Render(cmd.Description)},
+		{style.Label.Render("Command"), style.Header.Render(b.String())},
 	}...))
 
 	return nil
@@ -91,7 +91,7 @@ func (p *DetailsPanel) View() string {
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
-	return style.BorderStyle.Render(
+	return style.Border.Render(
 		p.contentStyle.
 			Width(w).
 			Height(h).

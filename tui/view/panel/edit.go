@@ -89,7 +89,7 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 		inputs:        []*textinput.Model{&nameInput, &descInput, &cmdInput},
 		paramsContent: make(map[string][2]*textinput.Model),
 		logger:        logger,
-		titleStyle:    style.TitleStyle,
+		titleStyle:    style.Title,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -149,9 +149,9 @@ func (p *EditPanel) View() string {
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
 	p.infoTable.Data(table.NewStringData([][]string{
-		{style.LabelStyle.Render("Name"), p.inputStyle.Render(p.inputs[nameInputPos].View())},
-		{style.LabelStyle.Render("Description"), p.inputStyle.Render(p.inputs[descInputPos].View())},
-		{style.LabelStyle.Render("Command"), p.inputStyle.Render(p.inputs[cmdInputPos].View())},
+		{style.Label.Render("Name"), p.inputStyle.Render(p.inputs[nameInputPos].View())},
+		{style.Label.Render("Description"), p.inputStyle.Render(p.inputs[descInputPos].View())},
+		{style.Label.Render("Command"), p.inputStyle.Render(p.inputs[cmdInputPos].View())},
 	}...))
 
 	rows := make([][]string, 0, len(p.cmd.Params))
@@ -174,7 +174,7 @@ func (p *EditPanel) View() string {
 	}
 
 	sty := lipgloss.NewStyle()
-	return style.BorderStyle.Render(p.contentStyle.
+	return style.Border.Render(p.contentStyle.
 		Width(w).
 		Height(h).
 		Render(
@@ -182,7 +182,7 @@ func (p *EditPanel) View() string {
 				lipgloss.Center,
 				p.titleStyle.Render(title),
 				p.infoTable.Render(),
-				sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
+				sty.MarginLeft(1).Render(style.Label.Render("Parameters")),
 				sty.MarginLeft(2).Render(p.paramsTable.Render()),
 			),
 		))
