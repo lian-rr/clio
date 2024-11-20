@@ -64,31 +64,35 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 func (p *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
 	paramCount := len(p.paramInputs)
 	var cmd tea.Cmd
-	if paramCount != 0 {
-		var input textinput.Model
-		switch {
-		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
+	switch {
+	case key.Matches(msg, ckey.DefaultMap.NextParamKey):
+		if paramCount > 1 {
 			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
 			p.selectedInput = (p.selectedInput + 1) % paramCount
 			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
-		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
+		}
+	case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
+		if paramCount > 1 {
 			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			p.selectedInput = ((p.selectedInput-1)%paramCount + paramCount) % paramCount
 			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
-		case key.Matches(msg, ckey.DefaultMap.Enter):
-			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
-			out, err := p.produceCommand()
-			if err != nil {
-				p.logger.Warn("producing incomplete command", slog.Any("error", err))
-				break
-			}
-			return *p, event.HandleExecuteMsg(out)
-		default:
-			param := p.orderedParams[p.selectedInput]
-			input, cmd = p.paramInputs[param].Update(msg)
-			p.paramInputs[param] = &input
 		}
+	case key.Matches(msg, ckey.DefaultMap.Enter):
+		if paramCount > 1 {
+			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
+		}
+		out, err := p.produceCommand()
+		if err != nil {
+			p.logger.Warn("producing incomplete command", slog.Any("error", err))
+			break
+		}
+		return *p, event.HandleExecuteMsg(out)
+	default:
+		var input textinput.Model
+		param := p.orderedParams[p.selectedInput]
+		input, cmd = p.paramInputs[param].Update(msg)
+		p.paramInputs[param] = &input
 	}
 	return *p, cmd
 }
