@@ -29,37 +29,37 @@ func NewSearchView() SearchView {
 	}
 }
 
-func (s *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
+func (p *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
 	var cmd tea.Cmd
-	s.input, cmd = s.input.Update(msg)
-	return *s, cmd
+	p.input, cmd = p.input.Update(msg)
+	return *p, cmd
 }
 
-func (s *SearchView) View() string {
+func (p *SearchView) View() string {
 	return style.BorderStyle.BorderBottom(true).Render(
 		lipgloss.JoinHorizontal(lipgloss.Left,
-			s.title+" ",
-			s.input.View(),
+			p.title+" ",
+			p.input.View(),
 		),
 	)
 }
 
-func (s *SearchView) Focus() {
-	s.input.Focus()
+func (p *SearchView) Focus() {
+	p.input.Focus()
 }
 
-func (s *SearchView) Unfocus() {
-	s.input.Blur()
+func (p *SearchView) Unfocus() {
+	p.input.Blur()
 }
 
-func (s *SearchView) Reset() {
-	s.input.Reset()
+func (p *SearchView) Reset() {
+	p.input.Reset()
 }
 
-func (s *SearchView) Content() string {
-	return s.input.Value()
+func (p *SearchView) Content() string {
+	return p.input.Value()
 }
 
-func (s *SearchView) SetWidth(width int) {
-	s.input.Width = width - (len(s.title) + 4)
+func (p *SearchView) SetWidth(width int) {
+	p.input.Width = width - (len(p.title) + 4)
 }

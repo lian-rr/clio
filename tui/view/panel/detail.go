@@ -64,7 +64,7 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 }
 
 // SetCommand sets the command to view in the panel.
-func (dc *DetailsPanel) SetCommand(cmd command.Command) error {
+func (p *DetailsPanel) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -75,37 +75,37 @@ func (dc *DetailsPanel) SetCommand(cmd command.Command) error {
 		rows = append(rows, []string{param.Name, param.Description, param.DefaultValue})
 	}
 
-	dc.paramsTable.Data(table.NewStringData(rows...))
+	p.paramsTable.Data(table.NewStringData(rows...))
 
-	dc.infoTable.Data(table.NewStringData([][]string{
+	p.infoTable.Data(table.NewStringData([][]string{
 		{style.LabelStyle.Render("Name"), style.HeaderStyle.Render(cmd.Name)},
 		{style.LabelStyle.Render("Description"), style.HeaderStyle.Render(cmd.Description)},
 		{style.LabelStyle.Render("Command"), style.HeaderStyle.Render(b.String())},
 	}...))
 
 	sty := lipgloss.NewStyle()
-	content := dc.contentStyle.Render(
+	content := p.contentStyle.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
-			dc.infoTable.Render(),
+			p.infoTable.Render(),
 			sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
-			sty.MarginLeft(2).Render(dc.paramsTable.Render()),
+			sty.MarginLeft(2).Render(p.paramsTable.Render()),
 		),
 	)
 
-	dc.view.SetContent(content)
+	p.view.SetContent(content)
 	return nil
 }
 
-func (dc *DetailsPanel) View() string {
-	return dc.view.View()
+func (p *DetailsPanel) View() string {
+	return p.view.View()
 }
 
-func (dc *DetailsPanel) SetSize(width, height int) {
-	dc.titleStyle.Width(width)
+func (p *DetailsPanel) SetSize(width, height int) {
+	p.titleStyle.Width(width)
 
-	dc.view.Width, dc.view.Height = width, height
+	p.view.Width, p.view.Height = width, height
 	w, _ := util.RelativeDimensions(width, height, .90, .80)
 
-	dc.paramsTable.Width(w)
+	p.paramsTable.Width(w)
 }

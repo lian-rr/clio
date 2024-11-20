@@ -98,75 +98,75 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 }
 
 // Update handles the msgs.
-func (v *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
-	inputCount := len(v.inputs)
+func (p *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
+	inputCount := len(p.inputs)
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, ckey.DefaultMap.NextParamKey):
-		v.inputs[v.selectedInput].Blur()
-		v.selectedInput = (v.selectedInput + 1) % inputCount
-		v.inputs[v.selectedInput].Focus()
+		p.inputs[p.selectedInput].Blur()
+		p.selectedInput = (p.selectedInput + 1) % inputCount
+		p.inputs[p.selectedInput].Focus()
 	case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
-		v.inputs[v.selectedInput].Blur()
+		p.inputs[p.selectedInput].Blur()
 		// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
-		v.selectedInput = ((v.selectedInput-1)%inputCount + inputCount) % inputCount
-		v.inputs[v.selectedInput].Focus()
+		p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
+		p.inputs[p.selectedInput].Focus()
 	case key.Matches(msg, ckey.DefaultMap.Enter):
-		if err := v.cmd.Build(); err != nil {
-			v.logger.Warn("error building param", slog.Any("error", err))
+		if err := p.cmd.Build(); err != nil {
+			p.logger.Warn("error building param", slog.Any("error", err))
 			break
 		}
 
-		v.logger.Debug("Done editing/creating command", slog.Any("command", v.cmd))
-		switch v.mode {
+		p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
+		switch p.mode {
 		case NewCommandMode:
-			return *v, event.HandleNewCommandMsg(*v.cmd)
+			return *p, event.HandleNewCommandMsg(*p.cmd)
 		case EditCommandMode:
-			return *v, event.HandleUpdateCommandMsg(*v.cmd)
+			return *p, event.HandleUpdateCommandMsg(*p.cmd)
 		default:
-			v.logger.Error("unknown mode found. discarding command", slog.Any("mode", v.mode))
+			p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
 		}
 	default:
 		var input textinput.Model
-		input, cmd = v.inputs[v.selectedInput].Update(msg)
-		v.inputs[v.selectedInput] = &input
+		input, cmd = p.inputs[p.selectedInput].Update(msg)
+		p.inputs[p.selectedInput] = &input
 
 		// command didn't changed
-		if v.selectedInput > cmdInputPos {
-			v.updateParams()
+		if p.selectedInput > cmdInputPos {
+			p.updateParams()
 		} else {
-			if err := v.updateCommand(); err != nil {
-				v.logger.Warn("error building cmd", slog.Any("error", err))
+			if err := p.updateCommand(); err != nil {
+				p.logger.Warn("error building cmd", slog.Any("error", err))
 			}
 		}
 	}
-	return *v, cmd
+	return *p, cmd
 }
 
 // View returns the string representation of the panel.
-func (v *EditPanel) View() string {
-	w := v.width - v.contentStyle.GetHorizontalBorderSize()
-	h := v.height - v.contentStyle.GetVerticalFrameSize()
+func (p *EditPanel) View() string {
+	w := p.width - p.contentStyle.GetHorizontalBorderSize()
+	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
-	v.infoTable.Data(table.NewStringData([][]string{
-		{style.LabelStyle.Render("Name"), v.inputStyle.Render(v.inputs[nameInputPos].View())},
-		{style.LabelStyle.Render("Description"), v.inputStyle.Render(v.inputs[descInputPos].View())},
-		{style.LabelStyle.Render("Command"), v.inputStyle.Render(v.inputs[cmdInputPos].View())},
+	p.infoTable.Data(table.NewStringData([][]string{
+		{style.LabelStyle.Render("Name"), p.inputStyle.Render(p.inputs[nameInputPos].View())},
+		{style.LabelStyle.Render("Description"), p.inputStyle.Render(p.inputs[descInputPos].View())},
+		{style.LabelStyle.Render("Command"), p.inputStyle.Render(p.inputs[cmdInputPos].View())},
 	}...))
 
-	rows := make([][]string, 0, len(v.cmd.Params))
-	for i, param := range v.cmd.Params {
+	rows := make([][]string, 0, len(p.cmd.Params))
+	for i, param := range p.cmd.Params {
 		rows = append(rows, []string{
 			param.Name,
-			v.inputs[i*2+3].View(),
-			v.inputs[i*2+4].View(),
+			p.inputs[i*2+3].View(),
+			p.inputs[i*2+4].View(),
 		})
 	}
 
-	v.paramsTable.Data(table.NewStringData(rows...))
+	p.paramsTable.Data(table.NewStringData(rows...))
 
 	var title string
-	switch v.mode {
+	switch p.mode {
 	case EditCommandMode:
 		title = "Edit Command"
 	default:
@@ -174,90 +174,90 @@ func (v *EditPanel) View() string {
 	}
 
 	sty := lipgloss.NewStyle()
-	return style.BorderStyle.Render(v.contentStyle.
+	return style.BorderStyle.Render(p.contentStyle.
 		Width(w).
 		Height(h).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				v.titleStyle.Render(title),
-				v.infoTable.Render(),
+				p.titleStyle.Render(title),
+				p.infoTable.Render(),
 				sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
-				sty.MarginLeft(2).Render(v.paramsTable.Render()),
+				sty.MarginLeft(2).Render(p.paramsTable.Render()),
 			),
 		))
 }
 
 // SetCommand sets the panel content.
-func (v *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
+func (p *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
 	// clear the params inputs
-	for _, input := range v.inputs {
+	for _, input := range p.inputs {
 		input.Reset()
 	}
-	v.inputs = append([]*textinput.Model{}, v.inputs[:fixedInputs]...)
-	v.paramsContent = make(map[string][2]*textinput.Model)
+	p.inputs = append([]*textinput.Model{}, p.inputs[:fixedInputs]...)
+	p.paramsContent = make(map[string][2]*textinput.Model)
 
-	v.mode = mode
+	p.mode = mode
 	if cmd == nil {
-		v.cmd = &command.Command{}
+		p.cmd = &command.Command{}
 	} else {
-		v.cmd = cmd
-		v.inputs[nameInputPos].SetValue(cmd.Name)
-		v.inputs[descInputPos].SetValue(cmd.Description)
-		v.inputs[cmdInputPos].SetValue(cmd.Command)
-		v.refreshParamsInputs()
+		p.cmd = cmd
+		p.inputs[nameInputPos].SetValue(cmd.Name)
+		p.inputs[descInputPos].SetValue(cmd.Description)
+		p.inputs[cmdInputPos].SetValue(cmd.Command)
+		p.refreshParamsInputs()
 	}
 
-	v.inputs[nameInputPos].Focus()
-	v.selectedInput = nameInputPos
+	p.inputs[nameInputPos].Focus()
+	p.selectedInput = nameInputPos
 	return nil
 }
 
 // SetSize sets the panel size.
-func (v *EditPanel) SetSize(width, height int) {
-	v.width = width
-	v.height = height
+func (p *EditPanel) SetSize(width, height int) {
+	p.width = width
+	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
-	v.infoTable.Width(w)
-	v.paramsTable.Width(w)
-	v.inputStyle = v.inputStyle.Width(w)
+	p.infoTable.Width(w)
+	p.paramsTable.Width(w)
+	p.inputStyle = p.inputStyle.Width(w)
 }
 
-func (v *EditPanel) updateCommand() error {
-	v.cmd.Name = v.inputs[nameInputPos].Value()
-	v.cmd.Description = v.inputs[descInputPos].Value()
+func (p *EditPanel) updateCommand() error {
+	p.cmd.Name = p.inputs[nameInputPos].Value()
+	p.cmd.Description = p.inputs[descInputPos].Value()
 
-	cmd := v.inputs[cmdInputPos].Value()
-	if len(cmd) != len(v.cmd.Command) {
-		v.cmd.Command = v.inputs[cmdInputPos].Value()
-		if err := v.cmd.Build(); err != nil {
+	cmd := p.inputs[cmdInputPos].Value()
+	if len(cmd) != len(p.cmd.Command) {
+		p.cmd.Command = p.inputs[cmdInputPos].Value()
+		if err := p.cmd.Build(); err != nil {
 			return err
 		}
-		v.refreshParamsInputs()
+		p.refreshParamsInputs()
 	}
 
 	return nil
 }
 
-func (v *EditPanel) updateParams() {
-	paramPos := (v.selectedInput - fixedInputs) / 2
-	field := (v.selectedInput - fixedInputs) % 2
+func (p *EditPanel) updateParams() {
+	paramPos := (p.selectedInput - fixedInputs) / 2
+	field := (p.selectedInput - fixedInputs) % 2
 
-	pName := v.cmd.Params[paramPos].Name
-	value := v.inputs[v.selectedInput].Value()
-	v.paramsContent[pName][field].SetValue(value)
+	pName := p.cmd.Params[paramPos].Name
+	value := p.inputs[p.selectedInput].Value()
+	p.paramsContent[pName][field].SetValue(value)
 
 	if field == 0 {
-		v.cmd.Params[paramPos].Description = value
+		p.cmd.Params[paramPos].Description = value
 	} else {
-		v.cmd.Params[paramPos].DefaultValue = value
+		p.cmd.Params[paramPos].DefaultValue = value
 	}
 }
 
-func (v *EditPanel) refreshParamsInputs() {
-	inputs := v.inputs[:fixedInputs]
-	for _, param := range v.cmd.Params {
-		if in, ok := v.paramsContent[param.Name]; ok {
+func (p *EditPanel) refreshParamsInputs() {
+	inputs := p.inputs[:fixedInputs]
+	for _, param := range p.cmd.Params {
+		if in, ok := p.paramsContent[param.Name]; ok {
 			inputs = append(inputs, in[0], in[1])
 		} else {
 			descInput := textinput.New()
@@ -266,11 +266,11 @@ func (v *EditPanel) refreshParamsInputs() {
 
 			dvInput := textinput.New()
 			dvInput.Placeholder = "optional"
-			v.paramsContent[param.Name] = [2]*textinput.Model{&descInput, &dvInput}
+			p.paramsContent[param.Name] = [2]*textinput.Model{&descInput, &dvInput}
 			dvInput.SetValue(param.DefaultValue)
 
 			inputs = append(inputs, &descInput, &dvInput)
 		}
 	}
-	v.inputs = inputs
+	p.inputs = inputs
 }

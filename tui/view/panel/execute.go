@@ -61,86 +61,86 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 }
 
 // Update handles the msgs.
-func (v *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
-	paramCount := len(v.paramInputs)
+func (p *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
+	paramCount := len(p.paramInputs)
 	var cmd tea.Cmd
 	if paramCount != 0 {
 		var input textinput.Model
 		switch {
 		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
-			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
-			v.selectedInput = (v.selectedInput + 1) % paramCount
-			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
+			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
+			p.selectedInput = (p.selectedInput + 1) % paramCount
+			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
-			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
+			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
-			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
-			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
+			p.selectedInput = ((p.selectedInput-1)%paramCount + paramCount) % paramCount
+			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 		case key.Matches(msg, ckey.DefaultMap.Enter):
-			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
-			out, err := v.produceCommand()
+			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
+			out, err := p.produceCommand()
 			if err != nil {
-				v.logger.Warn("producing incomplete command", slog.Any("error", err))
+				p.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
-			return *v, event.HandleExecuteMsg(out)
+			return *p, event.HandleExecuteMsg(out)
 		default:
-			param := v.orderedParams[v.selectedInput]
-			input, cmd = v.paramInputs[param].Update(msg)
-			v.paramInputs[param] = &input
+			param := p.orderedParams[p.selectedInput]
+			input, cmd = p.paramInputs[param].Update(msg)
+			p.paramInputs[param] = &input
 		}
 	}
-	return *v, cmd
+	return *p, cmd
 }
 
 // View returns the string representation of the panel.
-func (v *ExecutePanel) View() string {
-	v.logger.Debug("compiling command", slog.Any("command", v.command))
-	if v.command == nil {
+func (p *ExecutePanel) View() string {
+	p.logger.Debug("compiling command", slog.Any("command", p.command))
+	if p.command == nil {
 		return ""
 	}
 
-	arguments := make([]command.Argument, 0, len(v.command.Params))
-	for param, input := range v.paramInputs {
+	arguments := make([]command.Argument, 0, len(p.command.Params))
+	for param, input := range p.paramInputs {
 		arguments = append(arguments, command.Argument{
 			Name:  param,
 			Value: input.View(),
 		})
 	}
 
-	outCommand, err := v.command.Compile(arguments)
+	outCommand, err := p.command.Compile(arguments)
 	if err != nil {
-		v.logger.Error("error compiling command",
-			slog.String("name", v.command.Name),
-			slog.String("command", v.command.Command),
-			slog.Any("params", v.command.Params),
+		p.logger.Error("error compiling command",
+			slog.String("name", p.command.Name),
+			slog.String("command", p.command.Command),
+			slog.Any("params", p.command.Params),
 			slog.Any("arguments", arguments),
 			slog.Any("error", err),
 		)
 		return ""
 	}
 
-	v.logger.Debug("compiled command", slog.Any("out", outCommand))
+	p.logger.Debug("compiled command", slog.Any("out", outCommand))
 
-	w := v.width - v.contentStyle.GetHorizontalBorderSize()
-	h := v.height - v.contentStyle.GetVerticalFrameSize()
+	w := p.width - p.contentStyle.GetHorizontalBorderSize()
+	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
-	return style.BorderStyle.Render(v.contentStyle.
+	return style.BorderStyle.Render(p.contentStyle.
 		Width(w).
 		Height(h).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				v.titleStyle.Render("Compose"),
-				v.infoTable.Render(),
+				p.titleStyle.Render("Compose"),
+				p.infoTable.Render(),
 				style.BorderStyle.Render(outCommand),
-				v.paramsTable.Render(),
+				p.paramsTable.Render(),
 			),
 		))
 }
 
 // SetCommand sets the panel content.
-func (v *ExecutePanel) SetCommand(cmd command.Command) error {
+func (p *ExecutePanel) SetCommand(cmd command.Command) error {
 	inputStyle := lipgloss.NewStyle().
 		Italic(true).
 		Foreground(lipgloss.AdaptiveColor{
@@ -148,16 +148,16 @@ func (v *ExecutePanel) SetCommand(cmd command.Command) error {
 			Dark:  "#2aa198",
 		})
 
-	v.command = &cmd
+	p.command = &cmd
 
-	v.infoTable.Data(table.NewStringData([][]string{
+	p.infoTable.Data(table.NewStringData([][]string{
 		{style.LabelStyle.Render("Name"), cmd.Name},
 		{style.LabelStyle.Render("Description"), cmd.Description},
 	}...))
 
 	rows := make([][]string, 0, len(cmd.Params))
 	orderedParams := make([]string, 0, len(cmd.Params))
-	v.paramInputs = make(map[string]*textinput.Model, len(cmd.Params))
+	p.paramInputs = make(map[string]*textinput.Model, len(cmd.Params))
 
 	for _, param := range cmd.Params {
 		rows = append(rows, []string{param.Name, param.Description, param.DefaultValue})
@@ -169,33 +169,34 @@ func (v *ExecutePanel) SetCommand(cmd command.Command) error {
 		pi.CharLimit = 32
 		if param.DefaultValue != "" {
 			pi.SetValue(param.DefaultValue)
+			pi.SetCursor(len(param.DefaultValue))
 		}
 
-		v.paramInputs[param.Name] = &pi
+		p.paramInputs[param.Name] = &pi
 		orderedParams = append(orderedParams, param.Name)
 	}
 
-	v.paramsTable.Data(table.NewStringData(rows...))
-	v.orderedParams = orderedParams
+	p.paramsTable.Data(table.NewStringData(rows...))
+	p.orderedParams = orderedParams
 	if len(orderedParams) > 0 {
-		v.paramInputs[orderedParams[0]].Focus()
+		p.paramInputs[orderedParams[0]].Focus()
 	}
 
-	v.logger.Debug("command to execute set", slog.Any("command", cmd))
+	p.logger.Debug("command to execute set", slog.Any("command", cmd))
 	return nil
 }
 
 // SetSize sets the panel size.
-func (v *ExecutePanel) SetSize(width, height int) {
-	v.width = width
-	v.height = height
+func (p *ExecutePanel) SetSize(width, height int) {
+	p.width = width
+	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
-	v.paramsTable.Width(w)
+	p.paramsTable.Width(w)
 }
 
-func (v *ExecutePanel) produceCommand() (string, error) {
-	arguments := make([]command.Argument, 0, len(v.command.Params))
-	for param, input := range v.paramInputs {
+func (p *ExecutePanel) produceCommand() (string, error) {
+	arguments := make([]command.Argument, 0, len(p.command.Params))
+	for param, input := range p.paramInputs {
 		val := input.Value()
 		if len(val) == 0 {
 			return "", fmt.Errorf("value empty for param %q", param)
@@ -206,9 +207,9 @@ func (v *ExecutePanel) produceCommand() (string, error) {
 		})
 	}
 
-	outCommand, err := v.command.Compile(arguments)
+	outCommand, err := p.command.Compile(arguments)
 	if err != nil {
-		return "", fmt.Errorf("error compiling command: %v", err)
+		return "", fmt.Errorf("error compiling command: %p", err)
 	}
 
 	return outCommand, nil
