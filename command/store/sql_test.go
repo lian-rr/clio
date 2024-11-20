@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/lian-rr/keep/command"
-	"github.com/lian-rr/keep/command/store/sqlite"
+	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/store/sqlite"
 )
 
 func TestNewLocal(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/lian-rr/keep/command"
-	"github.com/lian-rr/keep/command/store/sqlite"
+	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/store/sqlite"
 )
 
 // ErrNotFound used when the searched element wasn't found.

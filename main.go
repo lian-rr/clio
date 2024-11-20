@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/lian-rr/keep/app"
-	"github.com/lian-rr/keep/command"
-	"github.com/lian-rr/keep/command/store"
-	"github.com/lian-rr/keep/tui"
+	"github.com/lian-rr/clio/app"
+	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/store"
+	"github.com/lian-rr/clio/tui"
 )
 
 const (

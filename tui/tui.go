@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian-rr/keep/command"
-	"github.com/lian-rr/keep/out"
+	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/out"
 )
 
 type manager interface {

@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian-rr/keep/command"
+	"github.com/lian-rr/clio/command"
 )
 
 type listView struct {

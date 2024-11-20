@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/lian-rr/keep/command"
+	"github.com/lian-rr/clio/command"
 )
 
 const title = "KEEP"
