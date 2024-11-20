@@ -3,7 +3,6 @@ package panel
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -12,19 +11,14 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
-	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/style"
+	"github.com/lian-rr/clio/tui/view/util"
 )
 
-var inputStyle = lipgloss.NewStyle().
-	Italic(true).
-	Foreground(lipgloss.AdaptiveColor{
-		Light: "#2aa198",
-		Dark:  "#2aa198",
-	})
-
-type ExecuteView struct {
+// ExecutePanel handles the panel for executing a command.
+type ExecutePanel struct {
 	command *command.Command
 
 	paramsTable *table.Table
@@ -41,28 +35,17 @@ type ExecuteView struct {
 	logger       *slog.Logger
 }
 
-func NewExecuteView(logger *slog.Logger) ExecuteView {
-	infoTable := table.New().Border(lipgloss.HiddenBorder())
-
-	capitalizeHeaders := func(data []string) []string {
-		for i := range data {
-			data[i] = strings.ToUpper(data[i])
-		}
-		return data
-	}
-
-	paramHeaders := []string{
-		"name",
-		"description",
-		"default value",
-	}
+// NewExecutePanel returns a new ExecutePanel.
+func NewExecutePanel(logger *slog.Logger) ExecutePanel {
+	infoTable := table.New().
+		Border(lipgloss.HiddenBorder())
 
 	params := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
-		Headers(capitalizeHeaders(paramHeaders)...)
+		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
-	return ExecuteView{
+	return ExecutePanel{
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
@@ -77,7 +60,8 @@ func NewExecuteView(logger *slog.Logger) ExecuteView {
 	}
 }
 
-func (v *ExecuteView) Update(msg tea.KeyMsg) (ExecuteView, tea.Cmd) {
+// Update handles the msgs.
+func (v *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
 	paramCount := len(v.paramInputs)
 	var cmd tea.Cmd
 	if paramCount != 0 {
@@ -99,7 +83,7 @@ func (v *ExecuteView) Update(msg tea.KeyMsg) (ExecuteView, tea.Cmd) {
 				v.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
-			return *v, mode.HandleOutcome(out)
+			return *v, event.HandleExecuteMsg(out)
 		default:
 			param := v.orderedParams[v.selectedInput]
 			input, cmd = v.paramInputs[param].Update(msg)
@@ -109,7 +93,8 @@ func (v *ExecuteView) Update(msg tea.KeyMsg) (ExecuteView, tea.Cmd) {
 	return *v, cmd
 }
 
-func (v *ExecuteView) View() string {
+// View returns the string representation of the panel.
+func (v *ExecutePanel) View() string {
 	if v.command == nil {
 		return ""
 	}
@@ -151,7 +136,15 @@ func (v *ExecuteView) View() string {
 		))
 }
 
-func (v *ExecuteView) SetCommand(cmd command.Command) error {
+// SetCommand sets the panel content.
+func (v *ExecutePanel) SetCommand(cmd command.Command) error {
+	inputStyle := lipgloss.NewStyle().
+		Italic(true).
+		Foreground(lipgloss.AdaptiveColor{
+			Light: "#2aa198",
+			Dark:  "#2aa198",
+		})
+
 	v.command = &cmd
 
 	v.infoTable.Data(table.NewStringData([][]string{
@@ -171,8 +164,7 @@ func (v *ExecuteView) SetCommand(cmd command.Command) error {
 		pi.Prompt = ""
 		pi.CharLimit = 32
 		if param.DefaultValue != "" {
-			// TODO: review this section
-			pi.SetSuggestions([]string{param.DefaultValue})
+			pi.SetValue(param.DefaultValue)
 		}
 
 		v.paramInputs[param.Name] = &pi
@@ -188,7 +180,16 @@ func (v *ExecuteView) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (v *ExecuteView) produceCommand() (string, error) {
+// SetSize sets the panel size.
+func (v *ExecutePanel) SetSize(width, height int) {
+	v.width = width
+	v.height = height
+	w, _ := util.RelativeDimensions(width, height, .7, .7)
+	v.infoTable.Width(w)
+	v.paramsTable.Width(w)
+}
+
+func (v *ExecutePanel) produceCommand() (string, error) {
 	arguments := make([]command.Argument, 0, len(v.command.Params))
 	for param, input := range v.paramInputs {
 		val := input.Value()
@@ -207,9 +208,4 @@ func (v *ExecuteView) produceCommand() (string, error) {
 	}
 
 	return outCommand, nil
-}
-
-func (v *ExecuteView) SetSize(width, height int) {
-	v.width = width
-	v.height = height
 }

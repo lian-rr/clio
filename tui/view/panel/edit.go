@@ -2,7 +2,6 @@ package panel
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -11,8 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
-	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -23,20 +22,24 @@ const (
 	cmdInputPos
 )
 
-type cmdEditMode int
+// EditPanelMode represents the way the panel is going to be used.
+type EditPanelMode int
 
 const (
-	_ cmdEditMode = iota
+	_ EditPanelMode = iota
+	// NewCommandMode pannel is going to return a new Command
 	NewCommandMode
+	// EditCommandMode pannel is going to return the passed Command updated.
 	EditCommandMode
 )
 
 // number of fixed inputs (name, description, command)
 const fixedInputs = 3
 
-type EditView struct {
+// EditPanel handles the panel for editing or creating a command.
+type EditPanel struct {
 	cmd  *command.Command
-	mode cmdEditMode
+	mode EditPanelMode
 	// cache the params inputs
 	paramsContent map[string][2]*textinput.Model
 
@@ -55,14 +58,8 @@ type EditView struct {
 	inputStyle   lipgloss.Style
 }
 
-func NewEditView(logger *slog.Logger) EditView {
-	capitalizeHeaders := func(data []string) []string {
-		for i := range data {
-			data[i] = strings.ToUpper(data[i])
-		}
-		return data
-	}
-
+// NewEditPanel returns a new ExecutePanel.
+func NewEditPanel(logger *slog.Logger) EditPanel {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Enter the command name"
 	descInput := textinput.New()
@@ -80,18 +77,12 @@ func NewEditView(logger *slog.Logger) EditView {
 			return style
 		})
 
-	paramHeaders := []string{
-		"name",
-		"description",
-		"default value",
-	}
-
 	params := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
-		Headers(capitalizeHeaders(paramHeaders)...)
+		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
-	return EditView{
+	return EditPanel{
 		mode:          NewCommandMode,
 		infoTable:     infoTable,
 		paramsTable:   params,
@@ -106,7 +97,8 @@ func NewEditView(logger *slog.Logger) EditView {
 	}
 }
 
-func (v *EditView) Update(msg tea.KeyMsg) (EditView, tea.Cmd) {
+// Update handles the msgs.
+func (v *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
 	inputCount := len(v.inputs)
 	var cmd tea.Cmd
 	switch {
@@ -126,9 +118,9 @@ func (v *EditView) Update(msg tea.KeyMsg) (EditView, tea.Cmd) {
 		}
 		switch v.mode {
 		case NewCommandMode:
-			return *v, mode.HandleNewCmdMsg(*v.cmd)
+			return *v, event.HandleNewCommandMsg(*v.cmd)
 		case EditCommandMode:
-			return *v, mode.HandleUpdateCmd(*v.cmd)
+			return *v, event.HandleUpdateCommandMsg(*v.cmd)
 		default:
 			v.logger.Error("unknown mode found. discarding command", slog.Any("mode", v.mode))
 		}
@@ -156,7 +148,8 @@ func (v *EditView) Update(msg tea.KeyMsg) (EditView, tea.Cmd) {
 	return *v, cmd
 }
 
-func (v *EditView) View() string {
+// View returns the string representation of the panel.
+func (v *EditPanel) View() string {
 	w := v.width - v.contentStyle.GetHorizontalBorderSize()
 	h := v.height - v.contentStyle.GetVerticalFrameSize()
 
@@ -200,7 +193,8 @@ func (v *EditView) View() string {
 		))
 }
 
-func (v *EditView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
+// SetCommand sets the panel content.
+func (v *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
 	// clear the params inputs
 	for _, input := range v.inputs {
 		input.Reset()
@@ -224,7 +218,8 @@ func (v *EditView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
 	return nil
 }
 
-func (v *EditView) SetSize(width, height int) {
+// SetSize sets the panel size.
+func (v *EditPanel) SetSize(width, height int) {
 	v.width = width
 	v.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
@@ -233,7 +228,7 @@ func (v *EditView) SetSize(width, height int) {
 	v.inputStyle = v.inputStyle.Width(w)
 }
 
-func (v *EditView) updateCommand() error {
+func (v *EditPanel) updateCommand() error {
 	v.cmd.Name = v.inputs[nameInputPos].Value()
 	v.cmd.Description = v.inputs[descInputPos].Value()
 
@@ -250,7 +245,7 @@ func (v *EditView) updateCommand() error {
 	return nil
 }
 
-func (v *EditView) updateParams() {
+func (v *EditPanel) updateParams() {
 	paramPos := (v.selectedInput - fixedInputs) / 2
 	field := (v.selectedInput - fixedInputs) % 2
 
@@ -265,7 +260,7 @@ func (v *EditView) updateParams() {
 	}
 }
 
-func (v *EditView) refreshParamsInputs() {
+func (v *EditPanel) refreshParamsInputs() {
 	inputs := v.inputs[:fixedInputs]
 	for _, param := range v.cmd.Params {
 		if in, ok := v.paramsContent[param.Name]; ok {

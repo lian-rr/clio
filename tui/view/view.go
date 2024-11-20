@@ -11,8 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
-	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/panel"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
@@ -39,10 +39,10 @@ type Main struct {
 
 	// views
 	searchView   panel.SearchView
-	commandsView panel.ListView
-	detailView   panel.DetailsView
-	executeView  panel.ExecuteView
-	editView     panel.EditView
+	commandsView panel.ExplorerPanel
+	detailView   panel.DetailsPanel
+	executeView  panel.ExecutePanel
+	editView     panel.EditPanel
 	help         help.Model
 
 	focus     focus
@@ -62,11 +62,11 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 		commandManager: manager,
 		titleStyle:     style.TitleStyle,
 		keys:           ckey.DefaultMap,
-		commandsView:   panel.NewListView(),
+		commandsView:   panel.NewExplorerPanel(),
 		searchView:     panel.NewSearchView(),
-		detailView:     panel.NewDetailsView(logger),
-		executeView:    panel.NewExecuteView(logger),
-		editView:       panel.NewEditView(logger),
+		detailView:     panel.NewDetailsPanel(logger),
+		executeView:    panel.NewExecutePanel(logger),
+		editView:       panel.NewEditPanel(logger),
 		help:           help.New(),
 		focus:          navigationFocus,
 		logger:         logger,
@@ -103,15 +103,15 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg.UpdateFocus(m)
 		return m, nil
 	// handle outcome
-	case mode.OutcomeMsg:
-		m.Output = msg.Output
+	case event.ExecuteCommandMsg:
+		m.Output = msg.Command
 		return m, tea.Quit
-	case mode.NewCmdMsg:
+	case event.NewCommandMsg:
 		if err := m.saveCommand(msg.Command); err != nil {
 			m.logger.Error("error storing new command", slog.Any("error", err))
 		}
 		return m, changeFocus(navigationFocus, nil)
-	case mode.EditCmdMsg:
+	case event.UpdateCommandMsg:
 		if err := m.editCommand(msg.Command); err != nil {
 			m.logger.Error("error editing command", slog.Any("error", err))
 		}
@@ -199,7 +199,7 @@ func (m *Main) setContent(cmds []command.Command) error {
 		m.detailView.SetCommand(cmd)
 	}
 
-	m.commandsView.SetContent(cmds)
+	m.commandsView.SetCommands(cmds)
 	return nil
 }
 
@@ -233,7 +233,7 @@ func (m *Main) saveCommand(cmd command.Command) error {
 		return err
 	}
 
-	idx := m.commandsView.AddItem(cmd)
+	idx := m.commandsView.AddCommand(cmd)
 	m.commandsView.Select(idx)
 	m.detailView.SetCommand(cmd)
 
@@ -249,7 +249,7 @@ func (m *Main) editCommand(cmd command.Command) error {
 		return err
 	}
 
-	m.commandsView.RefreshItem(newCmd)
+	m.commandsView.RefreshCommand(newCmd)
 	m.detailView.SetCommand(newCmd)
 	return nil
 }
@@ -263,11 +263,11 @@ func (m *Main) removeCommand(cmd command.Command) error {
 		return err
 	}
 
-	toSelectPos := m.commandsView.RemoveSelectedItem()
+	toSelectPos := m.commandsView.RemoveSelectedCommand()
 	if toSelectPos >= 0 {
 		m.commandsView.Select(toSelectPos)
-		if item, ok := m.commandsView.SelectedItem(); ok {
-			m.detailView.SetCommand(*item.Cmd)
+		if item, ok := m.commandsView.SelectedCommand(); ok {
+			m.detailView.SetCommand(*item.Command)
 		}
 	} else {
 		m.detailView.SetCommand(command.Command{})

@@ -43,13 +43,13 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 
 		m.setContent(cmds)
 	case key.Matches(msg, m.keys.Enter):
-		item, ok := m.commandsView.SelectedItem()
+		item, ok := m.commandsView.SelectedCommand()
 		if !ok {
 			break
 		}
 
 		return changeFocus(executeFocus, func(m *Main) {
-			err := m.executeView.SetCommand(*item.Cmd)
+			err := m.executeView.SetCommand(*item.Command)
 			if err != nil {
 				m.logger.Error("error setting execute view content", slog.Any("error", err))
 			}
@@ -62,46 +62,46 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 			}
 		})
 	case key.Matches(msg, m.keys.Edit):
-		item, ok := m.commandsView.SelectedItem()
+		item, ok := m.commandsView.SelectedCommand()
 		if !ok {
 			break
 		}
 
 		return changeFocus(editFocus, func(m *Main) {
-			err := m.editView.SetCommand(panel.EditCommandMode, item.Cmd)
+			err := m.editView.SetCommand(panel.EditCommandMode, item.Command)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
 	case key.Matches(msg, m.keys.Delete):
-		item, ok := m.commandsView.SelectedItem()
+		item, ok := m.commandsView.SelectedCommand()
 		if !ok {
 			break
 		}
 
-		if err := m.removeCommand(*item.Cmd); err != nil {
-			m.logger.Error("error removing command", slog.Any("command", *item.Cmd), slog.Any("error", err))
+		if err := m.removeCommand(*item.Command); err != nil {
+			m.logger.Error("error removing command", slog.Any("command", *item.Command), slog.Any("error", err))
 		}
 	default:
 		m.commandsView, cmd = m.commandsView.Update(msg)
-		item, ok := m.commandsView.SelectedItem()
+		item, ok := m.commandsView.SelectedCommand()
 		if !ok {
 			break
 		}
 
 		if !item.Loaded {
-			c, err := m.fechFullCommand(item.Cmd.ID.String())
+			c, err := m.fechFullCommand(item.Command.ID.String())
 			if err != nil {
 				m.logger.Error("error fetching command details", slog.Any("error", err))
 				break
 			}
 
-			item.Cmd.Params = c.Params
+			item.Command.Params = c.Params
 			item.Loaded = true
 
 			m.logger.Debug("command details fetched successfully", slog.Any("command", c))
 		}
-		if err := m.detailView.SetCommand(*item.Cmd); err != nil {
+		if err := m.detailView.SetCommand(*item.Command); err != nil {
 			m.logger.Error("error setting detail view content", slog.Any("error", err))
 		}
 	}
@@ -113,11 +113,11 @@ func (m *Main) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		return changeFocus(navigationFocus, func(m *Main) {
-			item, ok := m.commandsView.SelectedItem()
+			item, ok := m.commandsView.SelectedCommand()
 			if !ok {
 				return
 			}
-			if err := m.detailView.SetCommand(*item.Cmd); err != nil {
+			if err := m.detailView.SetCommand(*item.Command); err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
@@ -132,11 +132,11 @@ func (m *Main) handleEditInput(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		return changeFocus(navigationFocus, func(m *Main) {
-			item, ok := m.commandsView.SelectedItem()
+			item, ok := m.commandsView.SelectedCommand()
 			if !ok {
 				return
 			}
-			if err := m.detailView.SetCommand(*item.Cmd); err != nil {
+			if err := m.detailView.SetCommand(*item.Command); err != nil {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		})
