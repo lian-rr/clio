@@ -183,6 +183,9 @@ func (m *Main) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 				break
 			}
 			m.setContent(cmds)
+			if len(cmds) > 0 {
+				m.explorerPanel.Select(0)
+			}
 		} else if m.searching && len(terms) == 0 {
 			m.searching = false
 			getAll()
