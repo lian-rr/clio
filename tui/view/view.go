@@ -11,16 +11,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/ckey"
+	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/panel"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
 
-const title = "CLIO"
-
-const minCharCount = 3
+const title = "CLIo"
 
 type manager interface {
 	GetAll(context.Context) ([]command.Command, error)
@@ -36,7 +34,7 @@ type Main struct {
 	ctx            context.Context
 	commandManager manager
 
-	keys   ckey.KeyMap
+	keys   ckey.Map
 	logger *slog.Logger
 
 	// views
@@ -63,14 +61,14 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 		ctx:            ctx,
 		commandManager: manager,
 		titleStyle:     style.TitleStyle,
-		keys:           ckey.DefaultKeyMap,
+		keys:           ckey.DefaultMap,
 		commandsView:   panel.NewListView(),
 		searchView:     panel.NewSearchView(),
 		detailView:     panel.NewDetailsView(logger),
 		executeView:    panel.NewExecuteView(logger),
 		editView:       panel.NewEditView(logger),
 		help:           help.New(),
-		focus:          NavigationFocus,
+		focus:          navigationFocus,
 		logger:         logger,
 	}
 
@@ -101,7 +99,7 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
 		return m, nil
 	// mode update
-	case UpdateFocusMsg:
+	case updateFocusMsg:
 		msg.UpdateFocus(m)
 		return m, nil
 	// handle outcome
@@ -112,12 +110,12 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err := m.saveCommand(msg.Command); err != nil {
 			m.logger.Error("error storing new command", slog.Any("error", err))
 		}
-		return m, ChangeFocus(NavigationFocus, nil)
+		return m, changeFocus(navigationFocus, nil)
 	case mode.EditCmdMsg:
 		if err := m.editCommand(msg.Command); err != nil {
 			m.logger.Error("error editing command", slog.Any("error", err))
 		}
-		return m, ChangeFocus(NavigationFocus, nil)
+		return m, changeFocus(navigationFocus, nil)
 	}
 	return m, nil
 }
@@ -125,9 +123,9 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Main) View() string {
 	var detailPanelContent string
 	switch m.focus {
-	case ExecuteFocus:
+	case executeFocus:
 		detailPanelContent = m.executeView.View()
-	case EditFocus:
+	case editFocus:
 		detailPanelContent = m.editView.View()
 	default:
 		detailPanelContent = m.detailView.View()

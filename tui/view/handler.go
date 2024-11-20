@@ -9,13 +9,15 @@ import (
 	"github.com/lian-rr/clio/tui/view/panel"
 )
 
+const minCharCount = 3
+
 func (m *Main) handleInput(msg tea.KeyMsg) tea.Cmd {
 	switch m.focus {
-	case SearchFocus:
+	case searchFocus:
 		return m.handleSearchInput(msg)
-	case ExecuteFocus:
+	case executeFocus:
 		return m.handleExecuteInput(msg)
-	case EditFocus:
+	case editFocus:
 		return m.handleEditInput(msg)
 	default:
 		return m.handleNavigationInput(msg)
@@ -28,7 +30,7 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, m.keys.Quit):
 		return tea.Quit
 	case key.Matches(msg, m.keys.Search):
-		return ChangeFocus(SearchFocus, func(m *Main) {
+		return changeFocus(searchFocus, func(m *Main) {
 			m.searchView.Focus()
 		})
 	case key.Matches(msg, m.keys.DiscardSearch):
@@ -46,14 +48,14 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 			break
 		}
 
-		return ChangeFocus(ExecuteFocus, func(m *Main) {
+		return changeFocus(executeFocus, func(m *Main) {
 			err := m.executeView.SetCommand(*item.Cmd)
 			if err != nil {
 				m.logger.Error("error setting execute view content", slog.Any("error", err))
 			}
 		})
 	case key.Matches(msg, m.keys.New):
-		return ChangeFocus(EditFocus, func(m *Main) {
+		return changeFocus(editFocus, func(m *Main) {
 			err := m.editView.SetCommand(panel.NewCommandMode, nil)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
@@ -65,7 +67,7 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 			break
 		}
 
-		return ChangeFocus(EditFocus, func(m *Main) {
+		return changeFocus(editFocus, func(m *Main) {
 			err := m.editView.SetCommand(panel.EditCommandMode, item.Cmd)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
@@ -110,7 +112,7 @@ func (m *Main) handleExecuteInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, m.keys.Back):
-		return ChangeFocus(NavigationFocus, func(m *Main) {
+		return changeFocus(navigationFocus, func(m *Main) {
 			item, ok := m.commandsView.SelectedItem()
 			if !ok {
 				return
@@ -129,7 +131,7 @@ func (m *Main) handleEditInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, m.keys.Back):
-		return ChangeFocus(NavigationFocus, func(m *Main) {
+		return changeFocus(navigationFocus, func(m *Main) {
 			item, ok := m.commandsView.SelectedItem()
 			if !ok {
 				return
@@ -158,14 +160,14 @@ func (m *Main) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	switch {
 	case key.Matches(msg, m.keys.Back):
-		return ChangeFocus(NavigationFocus, nil)
+		return changeFocus(navigationFocus, nil)
 	case key.Matches(msg, m.keys.DiscardSearch):
 		m.searchView.Reset()
 		getAll()
-		return ChangeFocus(NavigationFocus, nil)
+		return changeFocus(navigationFocus, nil)
 	case key.Matches(msg, m.keys.Enter):
 		m.searchView.Unfocus()
-		return ChangeFocus(NavigationFocus, nil)
+		return changeFocus(navigationFocus, nil)
 	default:
 		m.searchView, cmd = m.searchView.Update(msg)
 

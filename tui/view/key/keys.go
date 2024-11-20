@@ -1,8 +1,11 @@
-package ckey
+package key
 
-import "github.com/charmbracelet/bubbles/key"
+import (
+	"github.com/charmbracelet/bubbles/key"
+)
 
-type KeyMap struct {
+// Map of key bindings.
+type Map struct {
 	Search           key.Binding
 	DiscardSearch    key.Binding
 	Quit             key.Binding
@@ -16,7 +19,8 @@ type KeyMap struct {
 	Delete           key.Binding
 }
 
-var DefaultKeyMap = KeyMap{
+// DefaultMap of key bindings.
+var DefaultMap = Map{
 	Search: key.NewBinding(
 		key.WithKeys("tab"),
 		key.WithHelp("tab", "search")),
@@ -54,7 +58,7 @@ var DefaultKeyMap = KeyMap{
 	),
 }
 
-func (km KeyMap) ShortHelp() []key.Binding {
+func (km Map) ShortHelp() []key.Binding {
 	return []key.Binding{
 		km.Back,
 		km.Search,
@@ -66,6 +70,6 @@ func (km KeyMap) ShortHelp() []key.Binding {
 	}
 }
 
-func (km KeyMap) FullHelp() [][]key.Binding {
+func (km Map) FullHelp() [][]key.Binding {
 	return [][]key.Binding{}
 }

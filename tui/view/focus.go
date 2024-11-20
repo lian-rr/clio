@@ -2,25 +2,26 @@ package view
 
 import tea "github.com/charmbracelet/bubbletea"
 
+// Panel focus
 type focus int
 
 const (
 	_ = iota
-	NavigationFocus
-	DetailFocus
-	CreateFocus
-	EditFocus
-	SearchFocus
-	ExecuteFocus
+	navigationFocus
+	detailFocus
+	createFocus
+	editFocus
+	searchFocus
+	executeFocus
 )
 
-type UpdateFocusMsg struct {
+type updateFocusMsg struct {
 	UpdateFocus func(*Main)
 }
 
-func ChangeFocus(newFocus focus, handler func(*Main)) tea.Cmd {
+func changeFocus(newFocus focus, handler func(*Main)) tea.Cmd {
 	return func() tea.Msg {
-		return UpdateFocusMsg{
+		return updateFocusMsg{
 			UpdateFocus: func(m *Main) {
 				m.focus = newFocus
 				if handler != nil {

@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/ckey"
+	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/style"
 )
@@ -83,16 +83,16 @@ func (v *ExecuteView) Update(msg tea.KeyMsg) (ExecuteView, tea.Cmd) {
 	if paramCount != 0 {
 		var input textinput.Model
 		switch {
-		case key.Matches(msg, ckey.DefaultKeyMap.NextParamKey):
+		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			v.selectedInput = (v.selectedInput + 1) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
-		case key.Matches(msg, ckey.DefaultKeyMap.PreviousParamKey):
+		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
-		case key.Matches(msg, ckey.DefaultKeyMap.Enter):
+		case key.Matches(msg, ckey.DefaultMap.Enter):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			out, err := v.produceCommand()
 			if err != nil {

@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/ckey"
+	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/mode"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
@@ -110,16 +110,16 @@ func (v *EditView) Update(msg tea.KeyMsg) (EditView, tea.Cmd) {
 	inputCount := len(v.inputs)
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, ckey.DefaultKeyMap.NextParamKey):
+	case key.Matches(msg, ckey.DefaultMap.NextParamKey):
 		v.inputs[v.selectedInput].Blur()
 		v.selectedInput = (v.selectedInput + 1) % inputCount
 		v.inputs[v.selectedInput].Focus()
-	case key.Matches(msg, ckey.DefaultKeyMap.PreviousParamKey):
+	case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
 		v.inputs[v.selectedInput].Blur()
 		// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 		v.selectedInput = ((v.selectedInput-1)%inputCount + inputCount) % inputCount
 		v.inputs[v.selectedInput].Focus()
-	case key.Matches(msg, ckey.DefaultKeyMap.Enter):
+	case key.Matches(msg, ckey.DefaultMap.Enter):
 		if err := v.cmd.Build(); err != nil {
 			v.logger.Warn("error building param", slog.Any("error", err))
 			break
