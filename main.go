@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	debugLogger  = "KEEP_DEBUG"
-	storePathEnv = "KEEP_STORE_PATH"
+	debugLogger  = "CLIO_DEBUG"
+	storePathEnv = "CLIO_STORE_PATH"
 )
 
 func main() {
@@ -82,7 +82,7 @@ func initLogger() (logger *slog.Logger, close func() error, err error) {
 	logLevel = slog.LevelDebug
 	// }
 
-	file, err := os.OpenFile("/tmp/keep.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0o644)
+	file, err := os.OpenFile("/tmp/clio.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		return nil, nil, err
 	}

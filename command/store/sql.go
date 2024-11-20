@@ -206,7 +206,7 @@ func WithSqliteDriver(ctx context.Context, path string) SqlOptFunc {
 			return errors.New("sql store already set")
 		}
 
-		db, err := sql.Open("sqlite3", fmt.Sprintf("%s/keep.db", path))
+		db, err := sql.Open("sqlite3", fmt.Sprintf("%s/store.db", path))
 		if err != nil {
 			return fmt.Errorf("error opening sqlite db: %v", err)
 		}

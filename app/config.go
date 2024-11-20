@@ -26,7 +26,7 @@ func New(ctx context.Context, path string, logger *slog.Logger) (App, error) {
 		}
 		path = def
 	}
-	path = fmt.Sprintf("%s/.keep", path)
+	path = fmt.Sprintf("%s/.clio", path)
 
 	err := os.Mkdir(path, 0o740)
 	if err != nil && !errors.Is(err, fs.ErrExist) {

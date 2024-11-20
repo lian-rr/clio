@@ -13,7 +13,7 @@ import (
 	"github.com/lian-rr/clio/command"
 )
 
-const title = "KEEP"
+const title = "CLIO"
 
 const minCharCount = 3
 
