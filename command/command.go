@@ -24,7 +24,6 @@ type (
 		Description string
 		Command     string
 		Params      []Parameter
-		tmp         *template.Template
 	}
 
 	// Parameter represents the Command Parameter
@@ -45,13 +44,7 @@ type cmdOpt func(*Command) error
 
 // New returns a new Command.
 func New(name string, desc string, rawCmd string, opts ...cmdOpt) (Command, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return Command{}, err
-	}
-
 	cmd := Command{
-		ID:          id,
 		Name:        name,
 		Description: desc,
 		Command:     rawCmd,
@@ -80,14 +73,6 @@ func (c *Command) Build() error {
 		c.ID = id
 	}
 
-	if c.tmp == nil {
-		tmp, err := template.New(c.Name).Parse(c.Command)
-		if err != nil {
-			return fmt.Errorf("invalid command: %w", err)
-		}
-		c.tmp = tmp
-	}
-
 	news := parseParams(c.Command)
 	params := make([]Parameter, 0, len(news))
 	for _, param := range news {
@@ -109,12 +94,9 @@ func (c *Command) Build() error {
 
 // Compile returns the command with the arguments applied.
 func (c *Command) Compile(args []Argument) (string, error) {
-	if c.tmp == nil {
-		tmp, err := template.New(c.Name).Parse(c.Command)
-		if err != nil {
-			return "", fmt.Errorf("invalid command: %w", err)
-		}
-		c.tmp = tmp
+	tmpl, err := template.New(c.Name).Parse(c.Command)
+	if err != nil {
+		return "", fmt.Errorf("invalid command: %w", err)
 	}
 
 	if len(args) != len(c.Params) {
@@ -127,7 +109,7 @@ func (c *Command) Compile(args []Argument) (string, error) {
 	}
 
 	var buffer bytes.Buffer
-	if err := c.tmp.Execute(&buffer, arguments); err != nil {
+	if err := tmpl.Execute(&buffer, arguments); err != nil {
 		return "", err
 	}
 
