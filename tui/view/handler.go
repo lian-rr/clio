@@ -73,6 +73,18 @@ func (m *Main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
 		})
+	case key.Matches(msg, m.keys.Copy):
+		item, ok := m.explorerPanel.SelectedCommand()
+		if !ok {
+			break
+		}
+
+		return changeFocus(editFocus, func(m *Main) {
+			err := m.editPanel.SetCommand(panel.NewCommandMode, item.Command)
+			if err != nil {
+				m.logger.Error("error setting edit view content", slog.Any("error", err))
+			}
+		})
 	case key.Matches(msg, m.keys.Delete):
 		item, ok := m.explorerPanel.SelectedCommand()
 		if !ok {

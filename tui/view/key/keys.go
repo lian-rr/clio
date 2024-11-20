@@ -14,6 +14,7 @@ type Map struct {
 	Back             key.Binding
 	New              key.Binding
 	Edit             key.Binding
+	Copy             key.Binding
 	NextParamKey     key.Binding
 	PreviousParamKey key.Binding
 	Delete           key.Binding
@@ -45,6 +46,9 @@ var DefaultMap = Map{
 	Edit: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit")),
+	Copy: key.NewBinding(
+		key.WithKeys("c"),
+		key.WithHelp("c", "copy")),
 	Delete: key.NewBinding(
 		key.WithKeys("backspace"),
 		key.WithHelp("backspace", "delete")),
@@ -66,6 +70,7 @@ func (km Map) ShortHelp() []key.Binding {
 		km.Enter,
 		km.New,
 		km.Edit,
+		km.Copy,
 		km.Delete,
 	}
 }
