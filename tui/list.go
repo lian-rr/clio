@@ -77,6 +77,15 @@ func (l *listView) Select(idx int) {
 	l.list.Select(idx)
 }
 
+func (l *listView) RefreshItem(cmd command.Command) {
+	idx := l.list.Index()
+	l.list.SetItem(idx, listItem{
+		title: cmd.Name,
+		desc:  cmd.Description,
+		cmd:   &cmd,
+	})
+}
+
 func toListItem(cmds []command.Command) []list.Item {
 	items := make([]list.Item, 0, len(cmds))
 	for _, cmd := range cmds {

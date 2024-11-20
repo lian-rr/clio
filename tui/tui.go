@@ -18,6 +18,7 @@ type manager interface {
 	Search(context.Context, string) ([]command.Command, error)
 	Add(context.Context, command.Command) (command.Command, error)
 	DeleteCommand(context.Context, string) error
+	UpdateCommand(context.Context, command.Command) (command.Command, error)
 }
 
 // Tui contains the TUI logic.

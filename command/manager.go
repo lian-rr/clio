@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +14,7 @@ type store interface {
 	SearchCommand(context.Context, string) ([]Command, error)
 	ListCommands(context.Context) ([]Command, error)
 	DeleteCommand(context.Context, uuid.UUID) error
+	DeleteParameters(context.Context, []uuid.UUID) error
 }
 
 // Manager handles the command admin operations.
@@ -88,4 +90,36 @@ func (m *Manager) DeleteCommand(ctx context.Context, rawID string) error {
 	}
 
 	return m.store.DeleteCommand(ctx, id)
+}
+
+// UpdateCommand updates the command on the store.
+func (m *Manager) UpdateCommand(ctx context.Context, cmd Command) (Command, error) {
+	curr, err := m.store.GetCommandByID(ctx, cmd.ID)
+	if err != nil {
+		return Command{}, fmt.Errorf("error getting current command: %v", err)
+	}
+
+	toDeleteParams := make([]uuid.UUID, 0)
+	for _, param := range curr.Params {
+		var found bool
+		for _, newp := range cmd.Params {
+			if param.ID == newp.ID {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toDeleteParams = append(toDeleteParams, param.ID)
+		}
+	}
+
+	if err := m.store.Save(ctx, cmd); err != nil {
+		return Command{}, fmt.Errorf("error updating command: %v", err)
+	}
+
+	if err := m.store.DeleteParameters(ctx, toDeleteParams); err != nil {
+		return Command{}, err
+	}
+	return cmd, nil
 }

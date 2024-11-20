@@ -133,16 +133,13 @@ func (v *editView) Update(msg tea.KeyMsg) (editView, tea.Cmd) {
 		input, cmd = v.inputs[v.selectedInput].Update(msg)
 		v.inputs[v.selectedInput] = &input
 
-		// if command changed
-		if v.selectedInput == cmdInputPos {
-			if len(v.inputs[cmdInputPos].Value()) != len(v.cmd.Command) {
-				if err := v.updateCommand(); err != nil {
-					v.logger.Warn("error building cmd", slog.Any("error", err))
-				}
-				v.refreshParamsInputs()
-			}
-		} else if v.selectedInput > cmdInputPos {
+		// if command didn't changed
+		if v.selectedInput > cmdInputPos {
 			v.updateParams()
+		} else {
+			if err := v.updateCommand(); err != nil {
+				v.logger.Warn("error building cmd", slog.Any("error", err))
+			}
 		}
 
 		v.logger.Debug("cmd values updated",
@@ -214,7 +211,7 @@ func (v *editView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
 		v.cmd = cmd
 		v.inputs[nameInputPos].SetValue(cmd.Name)
 		v.inputs[descInputPos].SetValue(cmd.Description)
-		v.inputs[nameInputPos].SetValue(cmd.Command)
+		v.inputs[cmdInputPos].SetValue(cmd.Command)
 		v.refreshParamsInputs()
 	}
 
@@ -240,7 +237,10 @@ func (v *editView) updateCommand() error {
 	if len(cmd) != len(v.cmd.Command) {
 		v.cmd.Command = v.inputs[cmdInputPos].Value()
 		v.logger.Debug("rebuilding command")
-		return v.cmd.Build()
+		if err := v.cmd.Build(); err != nil {
+			return err
+		}
+		v.refreshParamsInputs()
 	}
 
 	return nil
@@ -269,10 +269,13 @@ func (v *editView) refreshParamsInputs() {
 		} else {
 			descInput := textinput.New()
 			descInput.Placeholder = "add some description"
+			descInput.SetValue(param.Description)
 
 			dvInput := textinput.New()
 			dvInput.Placeholder = "optional"
 			v.paramsContent[param.Name] = [2]*textinput.Model{&descInput, &dvInput}
+			dvInput.SetValue(param.DefaultValue)
+
 			inputs = append(inputs, &descInput, &dvInput)
 		}
 	}

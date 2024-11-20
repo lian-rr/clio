@@ -329,3 +329,8 @@ func (m *mockStore) DeleteCommand(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+func (m *mockStore) DeleteParameters(ctx context.Context, ids []uuid.UUID) error {
+	args := m.Called(ctx, ids)
+	return args.Error(0)
+}
