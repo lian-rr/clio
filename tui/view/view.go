@@ -174,14 +174,13 @@ func (m *Main) updateComponentsDimensions(width, height int) {
 	// search panel
 	m.searchPanel.SetWidth(w)
 
-	w, h = util.RelativeDimensions(width, height, .75, .87)
+	w, h = util.RelativeDimensions(width, height, .72, .91)
 	// title
 	m.titleStyle = m.titleStyle.Width(w)
 
 	// detail panel
 	m.detailPanel.SetSize(w, h)
 
-	w, h = util.RelativeDimensions(width, height, .74, .87)
 	// execute panel
 	m.executePanel.SetSize(w, h)
 

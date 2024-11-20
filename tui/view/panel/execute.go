@@ -95,7 +95,6 @@ func (p *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
 
 // View returns the string representation of the panel.
 func (p *ExecutePanel) View() string {
-	p.logger.Debug("compiling command", slog.Any("command", p.command))
 	if p.command == nil {
 		return ""
 	}
@@ -120,23 +119,22 @@ func (p *ExecutePanel) View() string {
 		return ""
 	}
 
-	p.logger.Debug("compiled command", slog.Any("out", outCommand))
-
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
-	return style.BorderStyle.Render(p.contentStyle.
-		Width(w).
-		Height(h).
-		Render(
-			lipgloss.JoinVertical(
-				lipgloss.Center,
-				p.titleStyle.Render("Compose"),
-				p.infoTable.Render(),
-				style.BorderStyle.Render(outCommand),
-				p.paramsTable.Render(),
-			),
-		))
+	return style.BorderStyle.Render(
+		p.contentStyle.
+			Width(w).
+			Height(h).
+			Render(
+				lipgloss.JoinVertical(
+					lipgloss.Center,
+					p.titleStyle.Render("Compose"),
+					p.infoTable.Render(),
+					style.BorderStyle.Render(outCommand),
+					p.paramsTable.Render(),
+				),
+			))
 }
 
 // SetCommand sets the panel content.

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/alecthomas/chroma/v2/quick"
-	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 
@@ -22,10 +21,12 @@ const (
 
 // DetailsPanel handles the panel for showing the command details.
 type DetailsPanel struct {
-	view        viewport.Model
 	infoTable   *table.Table
 	paramsTable *table.Table
 	logger      *slog.Logger
+
+	width  int
+	height int
 
 	// styles
 	titleStyle   lipgloss.Style
@@ -52,11 +53,11 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
 	return DetailsPanel{
+		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
-		view:        viewport.New(0, 0),
-		logger:      logger,
-		titleStyle:  style.TitleStyle,
+		// view:        viewport.New(0, 0),
+		titleStyle: style.TitleStyle,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -83,29 +84,31 @@ func (p *DetailsPanel) SetCommand(cmd command.Command) error {
 		{style.LabelStyle.Render("Command"), style.HeaderStyle.Render(b.String())},
 	}...))
 
-	sty := lipgloss.NewStyle()
-	content := p.contentStyle.Render(
-		lipgloss.JoinVertical(
-			lipgloss.Top,
-			p.infoTable.Render(),
-			sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
-			sty.MarginLeft(2).Render(p.paramsTable.Render()),
-		),
-	)
-
-	p.view.SetContent(content)
 	return nil
 }
 
 func (p *DetailsPanel) View() string {
-	return p.view.View()
+	w := p.width - p.contentStyle.GetHorizontalBorderSize()
+	h := p.height - p.contentStyle.GetVerticalFrameSize()
+
+	return style.BorderStyle.Render(
+		p.contentStyle.
+			Width(w).
+			Height(h).
+			Render(
+				lipgloss.JoinVertical(
+					lipgloss.Center,
+					p.titleStyle.Render("Compose"),
+					p.infoTable.Render(),
+					p.paramsTable.Render(),
+				),
+			))
 }
 
 func (p *DetailsPanel) SetSize(width, height int) {
 	p.titleStyle.Width(width)
-
-	p.view.Width, p.view.Height = width, height
-	w, _ := util.RelativeDimensions(width, height, .90, .80)
-
+	p.width = width
+	p.height = height
+	w, _ := util.RelativeDimensions(width, height, .7, .7)
 	p.paramsTable.Width(w)
 }
