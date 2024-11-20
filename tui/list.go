@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian_rr/keep/command"
+	"github.com/lian-rr/keep/command"
 )
 
 type listView struct {
@@ -75,6 +75,15 @@ func (l *listView) RemoveSelectedItem() int {
 
 func (l *listView) Select(idx int) {
 	l.list.Select(idx)
+}
+
+func (l *listView) RefreshItem(cmd command.Command) {
+	idx := l.list.Index()
+	l.list.SetItem(idx, listItem{
+		title: cmd.Name,
+		desc:  cmd.Description,
+		cmd:   &cmd,
+	})
 }
 
 func toListItem(cmds []command.Command) []list.Item {

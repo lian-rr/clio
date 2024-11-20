@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian_rr/keep/command"
-	"github.com/lian_rr/keep/out"
+	"github.com/lian-rr/keep/command"
+	"github.com/lian-rr/keep/out"
 )
 
 type manager interface {
@@ -18,6 +18,7 @@ type manager interface {
 	Search(context.Context, string) ([]command.Command, error)
 	Add(context.Context, command.Command) (command.Command, error)
 	DeleteCommand(context.Context, string) error
+	UpdateCommand(context.Context, command.Command) (command.Command, error)
 }
 
 // Tui contains the TUI logic.

@@ -63,15 +63,29 @@ const (
 
 // queries
 const (
-	InsertCommandQuery = `
+	UpsertCommandQuery = `
 	INSERT INTO 
 		commands(id, name, description, command) 
-	VALUES (?, ?, ?, ?)`
+	VALUES (?, ?, ?, ?)
+	ON CONFLICT (id) 
+	DO
+		UPDATE SET 
+			name = excluded.name,
+			description = excluded.description,
+			command = excluded.command
+		WHERE excluded.id = commands.id`
 
-	InsertParameterPartialQuery = `
+	UpsertParameterPartialQuery = `
 	INSERT INTO 
 		parameters(id, command, name, description, value)
-	VALUES %s`
+	VALUES %s
+	ON CONFLICT (id) 
+	DO
+		UPDATE SET 
+			name = excluded.name,
+			description = excluded.description,
+			value = excluded.value
+		WHERE excluded.id = parameters.id`
 
 	GetAllCommandsQuery = `
 	SELECT id, name, description, command 
@@ -98,5 +112,7 @@ const (
 	WHERE commands_fts MATCH ?
 	ORDER BY bm25(commands_fts, 0, 15, 10, 5)`
 
-	DeleteCommand = `DELETE FROM commands WHERE commands.id = ?`
+	DeleteCommand = `DELETE FROM commands WHERE id = ?`
+
+	DeleteParameters = `DELETE FROM parameters WHERE id IN (?)`
 )

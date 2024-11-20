@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/lian_rr/keep/command"
+	"github.com/lian-rr/keep/command"
 )
 
 const title = "KEEP"
@@ -100,6 +100,9 @@ func (m *main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, changeMode(navigationMode, nil)
 	case editCmdMsg:
 		m.logger.Debug("command to edit", slog.Any("command", msg.command))
+		if err := m.editCommand(msg.command); err != nil {
+			m.logger.Error("error editing command", slog.Any("error", err))
+		}
 		return m, changeMode(navigationMode, nil)
 	}
 	return m, nil
@@ -222,6 +225,18 @@ func (m *main) handleNavigationInput(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, m.keys.new):
 		return changeMode(editMode, func(m *main) {
 			err := m.editView.SetCommand(newCommandMode, nil)
+			if err != nil {
+				m.logger.Error("error setting edit view content", slog.Any("error", err))
+			}
+		})
+	case key.Matches(msg, m.keys.edit):
+		item, ok := m.commandsView.selectedItem()
+		if !ok {
+			break
+		}
+
+		return changeMode(editMode, func(m *main) {
+			err := m.editView.SetCommand(editCommandMode, item.cmd)
 			if err != nil {
 				m.logger.Error("error setting edit view content", slog.Any("error", err))
 			}
@@ -410,6 +425,20 @@ func (m *main) saveCommand(cmd command.Command) error {
 	m.commandsView.Select(idx)
 	m.detailView.SetCommand(cmd)
 
+	return nil
+}
+
+func (m *main) editCommand(cmd command.Command) error {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	newCmd, err := m.commandManager.UpdateCommand(ctx, cmd)
+	if err != nil {
+		return err
+	}
+
+	m.commandsView.RefreshItem(newCmd)
+	m.detailView.SetCommand(newCmd)
 	return nil
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 
-	"github.com/lian_rr/keep/command"
+	"github.com/lian-rr/keep/command"
 )
 
 const (

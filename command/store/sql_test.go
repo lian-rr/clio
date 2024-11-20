@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/lian_rr/keep/command"
-	"github.com/lian_rr/keep/command/store/sqlite"
+	"github.com/lian-rr/keep/command"
+	"github.com/lian-rr/keep/command/store/sqlite"
 )
 
 func TestNewLocal(t *testing.T) {
@@ -127,7 +127,7 @@ func TestSql_Save(t *testing.T) {
 			setMockCallsFunc: func(cmd command.Command, mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 
-				mock.ExpectExec(sqlite.InsertCommandQuery).
+				mock.ExpectExec(sqlite.UpsertCommandQuery).
 					WithArgs(cmd.ID, cmd.Name, cmd.Description, cmd.Command).
 					WillReturnError(mockErr)
 
@@ -141,7 +141,7 @@ func TestSql_Save(t *testing.T) {
 			setMockCallsFunc: func(cmd command.Command, mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 
-				mock.ExpectExec(sqlite.InsertCommandQuery).
+				mock.ExpectExec(sqlite.UpsertCommandQuery).
 					WithArgs(cmd.ID, cmd.Name, cmd.Description, cmd.Command).
 					WillReturnError(mockErr)
 
@@ -160,7 +160,7 @@ func TestSql_Save(t *testing.T) {
 			setMockCallsFunc: func(cmd command.Command, mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 
-				mock.ExpectExec(sqlite.InsertCommandQuery).
+				mock.ExpectExec(sqlite.UpsertCommandQuery).
 					WithArgs(cmd.ID, cmd.Name, cmd.Description, cmd.Command).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -169,7 +169,7 @@ func TestSql_Save(t *testing.T) {
 					paramsValue = append(paramsValue, p.ID.String(), cmd.ID.String(), p.Name, p.Description, p.DefaultValue)
 				}
 
-				mock.ExpectExec(fmt.Sprintf(sqlite.InsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
+				mock.ExpectExec(fmt.Sprintf(sqlite.UpsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
 					WithArgs(paramsValue...).
 					WillReturnError(mockErr)
 				mock.ExpectRollback()
@@ -182,7 +182,7 @@ func TestSql_Save(t *testing.T) {
 			setMockCallsFunc: func(cmd command.Command, mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 
-				mock.ExpectExec(sqlite.InsertCommandQuery).
+				mock.ExpectExec(sqlite.UpsertCommandQuery).
 					WithArgs(cmd.ID, cmd.Name, cmd.Description, cmd.Command).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -191,7 +191,7 @@ func TestSql_Save(t *testing.T) {
 					paramsValue = append(paramsValue, p.ID.String(), cmd.ID.String(), p.Name, p.Description, p.DefaultValue)
 				}
 
-				mock.ExpectExec(fmt.Sprintf(sqlite.InsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
+				mock.ExpectExec(fmt.Sprintf(sqlite.UpsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
 					WithArgs(paramsValue...).
 					WillReturnResult(sqlmock.NewResult(2, 2))
 
@@ -205,7 +205,7 @@ func TestSql_Save(t *testing.T) {
 			setMockCallsFunc: func(cmd command.Command, mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 
-				mock.ExpectExec(sqlite.InsertCommandQuery).
+				mock.ExpectExec(sqlite.UpsertCommandQuery).
 					WithArgs(cmd.ID, cmd.Name, cmd.Description, cmd.Command).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -214,7 +214,7 @@ func TestSql_Save(t *testing.T) {
 					paramsValue = append(paramsValue, p.ID.String(), cmd.ID.String(), p.Name, p.Description, p.DefaultValue)
 				}
 
-				mock.ExpectExec(fmt.Sprintf(sqlite.InsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
+				mock.ExpectExec(fmt.Sprintf(sqlite.UpsertParameterPartialQuery, "(?, ?, ?, ?, ?),(?, ?, ?, ?, ?)")).
 					WithArgs(paramsValue...).
 					WillReturnResult(sqlmock.NewResult(2, 2))
 

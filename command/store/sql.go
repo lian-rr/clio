@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/lian_rr/keep/command"
-	"github.com/lian_rr/keep/command/store/sqlite"
+	"github.com/lian-rr/keep/command"
+	"github.com/lian-rr/keep/command/store/sqlite"
 )
 
 // ErrNotFound used when the searched element wasn't found.
@@ -61,7 +61,7 @@ func (s *Sql) Save(ctx context.Context, cmd command.Command) error {
 		}
 	}()
 
-	_, err = tx.ExecContext(ctx, sqlite.InsertCommandQuery, cmd.ID.String(), cmd.Name, cmd.Description, cmd.Command)
+	_, err = tx.ExecContext(ctx, sqlite.UpsertCommandQuery, cmd.ID.String(), cmd.Name, cmd.Description, cmd.Command)
 	if err != nil {
 		return fmt.Errorf("error storing command: %w", err)
 	}
@@ -75,7 +75,7 @@ func (s *Sql) Save(ctx context.Context, cmd command.Command) error {
 			args = append(args, param.ID.String(), cmd.ID.String(), param.Name, param.Description, param.DefaultValue)
 		}
 
-		paramsQuery := fmt.Sprintf(sqlite.InsertParameterPartialQuery, strings.Join(placeholders, ","))
+		paramsQuery := fmt.Sprintf(sqlite.UpsertParameterPartialQuery, strings.Join(placeholders, ","))
 		_, err = tx.ExecContext(ctx, paramsQuery, args...)
 		if err != nil {
 			return fmt.Errorf("error storing parameters: %w", err)
@@ -177,6 +177,19 @@ func (s *Sql) DeleteCommand(ctx context.Context, id uuid.UUID) error {
 	_, err := s.db.ExecContext(ctx, sqlite.DeleteCommand, id.String())
 	if err != nil {
 		return fmt.Errorf("error removing command with ID %q: %w", id, err)
+	}
+	return nil
+}
+
+// DeleteParameters removes the parameters with the provided ids.
+func (s *Sql) DeleteParameters(ctx context.Context, ids []uuid.UUID) error {
+	strIDs := make([]string, 0, len(ids))
+	for _, id := range ids {
+		strIDs = append(strIDs, id.String())
+	}
+
+	if _, err := s.db.ExecContext(ctx, sqlite.DeleteParameters, strings.Join(strIDs, ",")); err != nil {
+		return fmt.Errorf("error removing parameters: %v", err)
 	}
 	return nil
 }

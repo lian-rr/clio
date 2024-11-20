@@ -3,7 +3,7 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian_rr/keep/command"
+	"github.com/lian-rr/keep/command"
 )
 
 type newCmdMsg struct {
