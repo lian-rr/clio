@@ -1,4 +1,4 @@
-package tui
+package panel
 
 import (
 	"log/slog"
@@ -11,6 +11,10 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/ckey"
+	"github.com/lian-rr/clio/tui/view/mode"
+	"github.com/lian-rr/clio/tui/view/style"
+	"github.com/lian-rr/clio/tui/view/util"
 )
 
 const (
@@ -23,14 +27,14 @@ type cmdEditMode int
 
 const (
 	_ cmdEditMode = iota
-	newCommandMode
-	editCommandMode
+	NewCommandMode
+	EditCommandMode
 )
 
 // number of fixed inputs (name, description, command)
 const fixedInputs = 3
 
-type editView struct {
+type EditView struct {
 	cmd  *command.Command
 	mode cmdEditMode
 	// cache the params inputs
@@ -51,7 +55,7 @@ type editView struct {
 	inputStyle   lipgloss.Style
 }
 
-func newEditView(logger *slog.Logger) editView {
+func NewEditView(logger *slog.Logger) EditView {
 	capitalizeHeaders := func(data []string) []string {
 		for i := range data {
 			data[i] = strings.ToUpper(data[i])
@@ -87,14 +91,14 @@ func newEditView(logger *slog.Logger) editView {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers(capitalizeHeaders(paramHeaders)...)
 
-	return editView{
-		mode:          newCommandMode,
+	return EditView{
+		mode:          NewCommandMode,
 		infoTable:     infoTable,
 		paramsTable:   params,
 		inputs:        []*textinput.Model{&nameInput, &descInput, &cmdInput},
 		paramsContent: make(map[string][2]*textinput.Model),
 		logger:        logger,
-		titleStyle:    titleStyle,
+		titleStyle:    style.TitleStyle,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
@@ -102,29 +106,29 @@ func newEditView(logger *slog.Logger) editView {
 	}
 }
 
-func (v *editView) Update(msg tea.KeyMsg) (editView, tea.Cmd) {
+func (v *EditView) Update(msg tea.KeyMsg) (EditView, tea.Cmd) {
 	inputCount := len(v.inputs)
 	var cmd tea.Cmd
 	switch {
-	case key.Matches(msg, defaultKeyMap.nextParamKey):
+	case key.Matches(msg, ckey.DefaultKeyMap.NextParamKey):
 		v.inputs[v.selectedInput].Blur()
 		v.selectedInput = (v.selectedInput + 1) % inputCount
 		v.inputs[v.selectedInput].Focus()
-	case key.Matches(msg, defaultKeyMap.previousParamKey):
+	case key.Matches(msg, ckey.DefaultKeyMap.PreviousParamKey):
 		v.inputs[v.selectedInput].Blur()
 		// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 		v.selectedInput = ((v.selectedInput-1)%inputCount + inputCount) % inputCount
 		v.inputs[v.selectedInput].Focus()
-	case key.Matches(msg, defaultKeyMap.enter):
+	case key.Matches(msg, ckey.DefaultKeyMap.Enter):
 		if err := v.cmd.Build(); err != nil {
 			v.logger.Warn("error building param", slog.Any("error", err))
 			break
 		}
 		switch v.mode {
-		case newCommandMode:
-			return *v, handleNewCmdMsg(*v.cmd)
-		case editCommandMode:
-			return *v, handleUpdateCmd(*v.cmd)
+		case NewCommandMode:
+			return *v, mode.HandleNewCmdMsg(*v.cmd)
+		case EditCommandMode:
+			return *v, mode.HandleUpdateCmd(*v.cmd)
 		default:
 			v.logger.Error("unknown mode found. discarding command", slog.Any("mode", v.mode))
 		}
@@ -152,15 +156,14 @@ func (v *editView) Update(msg tea.KeyMsg) (editView, tea.Cmd) {
 	return *v, cmd
 }
 
-func (v *editView) View() string {
+func (v *EditView) View() string {
 	w := v.width - v.contentStyle.GetHorizontalBorderSize()
 	h := v.height - v.contentStyle.GetVerticalFrameSize()
 
-	style := lipgloss.NewStyle()
 	v.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Name"), v.inputStyle.Render(v.inputs[nameInputPos].View())},
-		{labelStyle.Render("Description"), v.inputStyle.Render(v.inputs[descInputPos].View())},
-		{labelStyle.Render("Command"), v.inputStyle.Render(v.inputs[cmdInputPos].View())},
+		{style.LabelStyle.Render("Name"), v.inputStyle.Render(v.inputs[nameInputPos].View())},
+		{style.LabelStyle.Render("Description"), v.inputStyle.Render(v.inputs[descInputPos].View())},
+		{style.LabelStyle.Render("Command"), v.inputStyle.Render(v.inputs[cmdInputPos].View())},
 	}...))
 
 	rows := make([][]string, 0, len(v.cmd.Params))
@@ -176,13 +179,14 @@ func (v *editView) View() string {
 
 	var title string
 	switch v.mode {
-	case editCommandMode:
+	case EditCommandMode:
 		title = "Edit Command"
 	default:
 		title = "New Command"
 	}
 
-	return borderStyle.Render(v.contentStyle.
+	sty := lipgloss.NewStyle()
+	return style.BorderStyle.Render(v.contentStyle.
 		Width(w).
 		Height(h).
 		Render(
@@ -190,13 +194,13 @@ func (v *editView) View() string {
 				lipgloss.Center,
 				v.titleStyle.Render(title),
 				v.infoTable.Render(),
-				style.MarginLeft(1).Render(labelStyle.Render("Parameters")),
-				style.MarginLeft(2).Render(v.paramsTable.Render()),
+				sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
+				sty.MarginLeft(2).Render(v.paramsTable.Render()),
 			),
 		))
 }
 
-func (v *editView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
+func (v *EditView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
 	// clear the params inputs
 	for _, input := range v.inputs {
 		input.Reset()
@@ -220,16 +224,16 @@ func (v *editView) SetCommand(mode cmdEditMode, cmd *command.Command) error {
 	return nil
 }
 
-func (v *editView) SetSize(width, height int) {
+func (v *EditView) SetSize(width, height int) {
 	v.width = width
 	v.height = height
-	w, _ := relativeDimensions(width, height, .7, .7)
+	w, _ := util.RelativeDimensions(width, height, .7, .7)
 	v.infoTable.Width(w)
 	v.paramsTable.Width(w)
 	v.inputStyle = v.inputStyle.Width(w)
 }
 
-func (v *editView) updateCommand() error {
+func (v *EditView) updateCommand() error {
 	v.cmd.Name = v.inputs[nameInputPos].Value()
 	v.cmd.Description = v.inputs[descInputPos].Value()
 
@@ -246,7 +250,7 @@ func (v *editView) updateCommand() error {
 	return nil
 }
 
-func (v *editView) updateParams() {
+func (v *EditView) updateParams() {
 	paramPos := (v.selectedInput - fixedInputs) / 2
 	field := (v.selectedInput - fixedInputs) % 2
 
@@ -261,7 +265,7 @@ func (v *editView) updateParams() {
 	}
 }
 
-func (v *editView) refreshParamsInputs() {
+func (v *EditView) refreshParamsInputs() {
 	inputs := v.inputs[:fixedInputs]
 	for _, param := range v.cmd.Params {
 		if in, ok := v.paramsContent[param.Name]; ok {

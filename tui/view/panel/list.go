@@ -1,4 +1,4 @@
-package tui
+package panel
 
 import (
 	"github.com/charmbracelet/bubbles/list"
@@ -7,11 +7,11 @@ import (
 	"github.com/lian-rr/clio/command"
 )
 
-type listView struct {
+type ListView struct {
 	list list.Model
 }
 
-func newListView() listView {
+func NewListView() ListView {
 	view := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	view.DisableQuitKeybindings()
 	view.SetShowTitle(false)
@@ -19,27 +19,27 @@ func newListView() listView {
 	view.SetShowHelp(false)
 	view.SetShowStatusBar(false)
 
-	return listView{
+	return ListView{
 		list: view,
 	}
 }
 
-func (l *listView) Update(msg tea.Msg) (listView, tea.Cmd) {
+func (l *ListView) Update(msg tea.Msg) (ListView, tea.Cmd) {
 	var cmd tea.Cmd
 	l.list, cmd = l.list.Update(msg)
 	return *l, cmd
 }
 
-func (l listView) View() string {
+func (l ListView) View() string {
 	return l.list.View()
 }
 
-func (l *listView) SetSize(w, h int) {
+func (l *ListView) SetSize(w, h int) {
 	l.list.SetSize(w, h)
 }
 
-func (l *listView) selectedItem() (*listItem, bool) {
-	command, ok := l.list.SelectedItem().(*listItem)
+func (l *ListView) SelectedItem() (*ListItem, bool) {
+	command, ok := l.list.SelectedItem().(*ListItem)
 	if !ok {
 		return nil, false
 	}
@@ -47,23 +47,23 @@ func (l *listView) selectedItem() (*listItem, bool) {
 	return command, true
 }
 
-func (l *listView) SetContent(cmds []command.Command) {
+func (l *ListView) SetContent(cmds []command.Command) {
 	l.list.SetItems(toListItem(cmds))
 }
 
-func (l *listView) AddItem(cmd command.Command) int {
+func (l *ListView) AddItem(cmd command.Command) int {
 	idx := len(l.list.Items())
-	l.list.InsertItem(idx, &listItem{
+	l.list.InsertItem(idx, &ListItem{
 		title:  cmd.Name,
 		desc:   cmd.Description,
-		cmd:    &cmd,
-		loaded: true,
+		Cmd:    &cmd,
+		Loaded: true,
 	})
 
 	return idx
 }
 
-func (l *listView) RemoveSelectedItem() int {
+func (l *ListView) RemoveSelectedItem() int {
 	idx := l.list.Index()
 	l.list.RemoveItem(idx)
 
@@ -73,49 +73,49 @@ func (l *listView) RemoveSelectedItem() int {
 	return idx - 1
 }
 
-func (l *listView) Select(idx int) {
+func (l *ListView) Select(idx int) {
 	l.list.Select(idx)
 }
 
-func (l *listView) RefreshItem(cmd command.Command) {
+func (l *ListView) RefreshItem(cmd command.Command) {
 	idx := l.list.Index()
-	l.list.SetItem(idx, listItem{
+	l.list.SetItem(idx, ListItem{
 		title: cmd.Name,
 		desc:  cmd.Description,
-		cmd:   &cmd,
+		Cmd:   &cmd,
 	})
 }
 
 func toListItem(cmds []command.Command) []list.Item {
 	items := make([]list.Item, 0, len(cmds))
 	for _, cmd := range cmds {
-		items = append(items, &listItem{
+		items = append(items, &ListItem{
 			title: cmd.Name,
 			desc:  cmd.Description,
-			cmd:   &cmd,
+			Cmd:   &cmd,
 		})
 	}
 
 	return items
 }
 
-type listItem struct {
+type ListItem struct {
 	title  string
 	desc   string
-	cmd    *command.Command
-	loaded bool
+	Cmd    *command.Command
+	Loaded bool
 }
 
-var _ list.Item = (*listItem)(nil)
+var _ list.Item = (*ListItem)(nil)
 
-func (i listItem) Title() string {
+func (i ListItem) Title() string {
 	return i.title
 }
 
-func (i listItem) Description() string {
+func (i ListItem) Description() string {
 	return i.desc
 }
 
-func (i listItem) FilterValue() string {
+func (i ListItem) FilterValue() string {
 	return i.title
 }

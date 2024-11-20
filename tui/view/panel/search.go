@@ -1,17 +1,19 @@
-package tui
+package panel
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/lian-rr/clio/tui/view/style"
 )
 
-type searchView struct {
+type SearchView struct {
 	title string
 	input textinput.Model
 }
 
-func newSearchView() searchView {
+func NewSearchView() SearchView {
 	input := textinput.New()
 	input.Placeholder = "type something"
 	input.TextStyle = lipgloss.NewStyle().
@@ -21,20 +23,20 @@ func newSearchView() searchView {
 			Dark:  "#626262",
 		})
 
-	return searchView{
+	return SearchView{
 		title: "Search",
 		input: input,
 	}
 }
 
-func (s *searchView) Update(msg tea.Msg) (searchView, tea.Cmd) {
+func (s *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
 	var cmd tea.Cmd
 	s.input, cmd = s.input.Update(msg)
 	return *s, cmd
 }
 
-func (s *searchView) View() string {
-	return borderStyle.BorderBottom(true).Render(
+func (s *SearchView) View() string {
+	return style.BorderStyle.BorderBottom(true).Render(
 		lipgloss.JoinHorizontal(lipgloss.Left,
 			s.title+" ",
 			s.input.View(),
@@ -42,22 +44,22 @@ func (s *searchView) View() string {
 	)
 }
 
-func (s *searchView) Focus() {
+func (s *SearchView) Focus() {
 	s.input.Focus()
 }
 
-func (s *searchView) Unfocus() {
+func (s *SearchView) Unfocus() {
 	s.input.Blur()
 }
 
-func (s *searchView) Reset() {
+func (s *SearchView) Reset() {
 	s.input.Reset()
 }
 
-func (s *searchView) Content() string {
+func (s *SearchView) Content() string {
 	return s.input.Value()
 }
 
-func (s *searchView) SetWidth(width int) {
+func (s *SearchView) SetWidth(width int) {
 	s.input.Width = width - (len(s.title) + 4)
 }

@@ -1,4 +1,4 @@
-package tui
+package panel
 
 import (
 	"fmt"
@@ -12,6 +12,9 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/ckey"
+	"github.com/lian-rr/clio/tui/view/mode"
+	"github.com/lian-rr/clio/tui/view/style"
 )
 
 var inputStyle = lipgloss.NewStyle().
@@ -21,7 +24,7 @@ var inputStyle = lipgloss.NewStyle().
 		Dark:  "#2aa198",
 	})
 
-type executeView struct {
+type ExecuteView struct {
 	command *command.Command
 
 	paramsTable *table.Table
@@ -38,7 +41,7 @@ type executeView struct {
 	logger       *slog.Logger
 }
 
-func newExecuteView(logger *slog.Logger) executeView {
+func NewExecuteView(logger *slog.Logger) ExecuteView {
 	infoTable := table.New().Border(lipgloss.HiddenBorder())
 
 	capitalizeHeaders := func(data []string) []string {
@@ -59,44 +62,44 @@ func newExecuteView(logger *slog.Logger) executeView {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers(capitalizeHeaders(paramHeaders)...)
 
-	return executeView{
+	return ExecuteView{
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
-		titleStyle: labelStyle.
+		titleStyle: style.LabelStyle.
 			BorderBottom(true).
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderBottom(true).
-			BorderForeground(subtle),
+			BorderForeground(style.SubtleStyle),
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
 	}
 }
 
-func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
+func (v *ExecuteView) Update(msg tea.KeyMsg) (ExecuteView, tea.Cmd) {
 	paramCount := len(v.paramInputs)
 	var cmd tea.Cmd
 	if paramCount != 0 {
 		var input textinput.Model
 		switch {
-		case key.Matches(msg, defaultKeyMap.nextParamKey):
+		case key.Matches(msg, ckey.DefaultKeyMap.NextParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			v.selectedInput = (v.selectedInput + 1) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
-		case key.Matches(msg, defaultKeyMap.previousParamKey):
+		case key.Matches(msg, ckey.DefaultKeyMap.PreviousParamKey):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			v.selectedInput = ((v.selectedInput-1)%paramCount + paramCount) % paramCount
 			v.paramInputs[v.orderedParams[v.selectedInput]].Focus()
-		case key.Matches(msg, defaultKeyMap.enter):
+		case key.Matches(msg, ckey.DefaultKeyMap.Enter):
 			v.paramInputs[v.orderedParams[v.selectedInput]].Blur()
 			out, err := v.produceCommand()
 			if err != nil {
 				v.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
-			return *v, handleOutcome(out)
+			return *v, mode.HandleOutcome(out)
 		default:
 			param := v.orderedParams[v.selectedInput]
 			input, cmd = v.paramInputs[param].Update(msg)
@@ -106,7 +109,7 @@ func (v *executeView) Update(msg tea.KeyMsg) (executeView, tea.Cmd) {
 	return *v, cmd
 }
 
-func (v *executeView) View() string {
+func (v *ExecuteView) View() string {
 	if v.command == nil {
 		return ""
 	}
@@ -134,7 +137,7 @@ func (v *executeView) View() string {
 	w := v.width - v.contentStyle.GetHorizontalBorderSize()
 	h := v.height - v.contentStyle.GetVerticalFrameSize()
 
-	return borderStyle.Render(v.contentStyle.
+	return style.BorderStyle.Render(v.contentStyle.
 		Width(w).
 		Height(h).
 		Render(
@@ -142,18 +145,18 @@ func (v *executeView) View() string {
 				lipgloss.Center,
 				v.titleStyle.Render("Compose"),
 				v.infoTable.Render(),
-				borderStyle.Render(outCommand),
+				style.BorderStyle.Render(outCommand),
 				v.paramsTable.Render(),
 			),
 		))
 }
 
-func (v *executeView) SetCommand(cmd command.Command) error {
+func (v *ExecuteView) SetCommand(cmd command.Command) error {
 	v.command = &cmd
 
 	v.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Name"), cmd.Name},
-		{labelStyle.Render("Description"), cmd.Description},
+		{style.LabelStyle.Render("Name"), cmd.Name},
+		{style.LabelStyle.Render("Description"), cmd.Description},
 	}...))
 
 	rows := make([][]string, 0, len(cmd.Params))
@@ -185,7 +188,7 @@ func (v *executeView) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (v *executeView) produceCommand() (string, error) {
+func (v *ExecuteView) produceCommand() (string, error) {
 	arguments := make([]command.Argument, 0, len(v.command.Params))
 	for param, input := range v.paramInputs {
 		val := input.Value()
@@ -206,7 +209,7 @@ func (v *executeView) produceCommand() (string, error) {
 	return outCommand, nil
 }
 
-func (v *executeView) SetSize(width, height int) {
+func (v *ExecuteView) SetSize(width, height int) {
 	v.width = width
 	v.height = height
 }

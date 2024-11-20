@@ -1,4 +1,4 @@
-package tui
+package style
 
 import "github.com/charmbracelet/lipgloss"
 
@@ -8,14 +8,14 @@ var (
 )
 
 var (
-	borderStyle = lipgloss.NewStyle().
+	BorderStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color(borderColor))
 
-	docStyle = borderStyle.
+	DocStyle = BorderStyle.
 			Margin(1, 2)
 
-	titleStyle = lipgloss.NewStyle().
+	TitleStyle = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).
 			Bold(true).
 			BorderBottom(true).
@@ -23,25 +23,25 @@ var (
 			BorderForeground(lipgloss.Color(borderColor)).
 			Foreground(lipgloss.Color(primaryColor))
 
-	helpStyle = lipgloss.NewStyle().
+	HelpStyle = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).
 			Padding(0, 2, 0).
 			MarginTop(1)
 
-	containerStyle = lipgloss.NewStyle().
+	ContainerStyle = lipgloss.NewStyle().
 			Padding(1, 2, 0)
 
-	infoStyle = lipgloss.NewStyle().
+	InfoStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderTop(true).
-			BorderForeground(subtle)
+			BorderForeground(SubtleStyle)
 
-	headerStyle = lipgloss.NewStyle().
+	HeaderStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderBottom(true).
-			BorderForeground(subtle)
+			BorderForeground(SubtleStyle)
 
-	labelStyle = lipgloss.NewStyle().
+	LabelStyle = lipgloss.NewStyle().
 			AlignHorizontal(lipgloss.Right).
 			MarginLeft(1).
 			MarginRight(1).
@@ -49,5 +49,5 @@ var (
 			Italic(true).
 			Foreground(lipgloss.Color("#FFF7DB"))
 
-	subtle = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
+	SubtleStyle = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 )

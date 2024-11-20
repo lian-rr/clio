@@ -1,4 +1,4 @@
-package tui
+package panel
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/style"
+	"github.com/lian-rr/clio/tui/view/util"
 )
 
 const (
@@ -19,7 +21,7 @@ const (
 	chromaStyle     = "catppuccin-frappe"
 )
 
-type detailsView struct {
+type DetailsView struct {
 	view        viewport.Model
 	infoTable   *table.Table
 	paramsTable *table.Table
@@ -30,7 +32,7 @@ type detailsView struct {
 	contentStyle lipgloss.Style
 }
 
-func newDetailsView(logger *slog.Logger) detailsView {
+func NewDetailsView(logger *slog.Logger) DetailsView {
 	capitalizeHeaders := func(data []string) []string {
 		for i := range data {
 			data[i] = strings.ToUpper(data[i])
@@ -61,19 +63,19 @@ func newDetailsView(logger *slog.Logger) detailsView {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers(capitalizeHeaders(paramHeaders)...)
 
-	return detailsView{
+	return DetailsView{
 		infoTable:   infoTable,
 		paramsTable: params,
 		view:        viewport.New(0, 0),
 		logger:      logger,
-		titleStyle:  titleStyle,
+		titleStyle:  style.TitleStyle,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
 	}
 }
 
-func (dc *detailsView) SetCommand(cmd command.Command) error {
+func (dc *DetailsView) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -87,18 +89,18 @@ func (dc *detailsView) SetCommand(cmd command.Command) error {
 	dc.paramsTable.Data(table.NewStringData(rows...))
 
 	dc.infoTable.Data(table.NewStringData([][]string{
-		{labelStyle.Render("Name"), headerStyle.Render(cmd.Name)},
-		{labelStyle.Render("Description"), headerStyle.Render(cmd.Description)},
-		{labelStyle.Render("Command"), headerStyle.Render(b.String())},
+		{style.LabelStyle.Render("Name"), style.HeaderStyle.Render(cmd.Name)},
+		{style.LabelStyle.Render("Description"), style.HeaderStyle.Render(cmd.Description)},
+		{style.LabelStyle.Render("Command"), style.HeaderStyle.Render(b.String())},
 	}...))
 
-	style := lipgloss.NewStyle()
+	sty := lipgloss.NewStyle()
 	content := dc.contentStyle.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
 			dc.infoTable.Render(),
-			style.MarginLeft(1).Render(labelStyle.Render("Parameters")),
-			style.MarginLeft(2).Render(dc.paramsTable.Render()),
+			sty.MarginLeft(1).Render(style.LabelStyle.Render("Parameters")),
+			sty.MarginLeft(2).Render(dc.paramsTable.Render()),
 		),
 	)
 
@@ -106,15 +108,15 @@ func (dc *detailsView) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (dc *detailsView) View() string {
+func (dc *DetailsView) View() string {
 	return dc.view.View()
 }
 
-func (dc *detailsView) SetSize(width, height int) {
+func (dc *DetailsView) SetSize(width, height int) {
 	dc.titleStyle.Width(width)
 
 	dc.view.Width, dc.view.Height = width, height
-	w, _ := relativeDimensions(width, height, .90, .80)
+	w, _ := util.RelativeDimensions(width, height, .90, .80)
 
 	dc.paramsTable.Width(w)
 }

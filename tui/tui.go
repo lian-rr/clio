@@ -10,16 +10,8 @@ import (
 
 	"github.com/lian-rr/clio/command"
 	"github.com/lian-rr/clio/out"
+	"github.com/lian-rr/clio/tui/view"
 )
-
-type manager interface {
-	GetAll(context.Context) ([]command.Command, error)
-	GetOne(context.Context, string) (command.Command, error)
-	Search(context.Context, string) ([]command.Command, error)
-	Add(context.Context, command.Command) (command.Command, error)
-	DeleteCommand(context.Context, string) error
-	UpdateCommand(context.Context, command.Command) (command.Command, error)
-}
 
 // Tui contains the TUI logic.
 type Tui struct {
@@ -29,7 +21,7 @@ type Tui struct {
 
 // New returns a new TUI container.
 func New(ctx context.Context, manager *command.Manager, logger *slog.Logger) (Tui, error) {
-	model, err := newMain(ctx, manager, logger)
+	model, err := view.New(ctx, manager, logger)
 	if err != nil {
 		return Tui{}, fmt.Errorf("error starting the main model: %w", err)
 	}
@@ -51,13 +43,13 @@ func (t *Tui) Start() error {
 		return fmt.Errorf("error starting the TUI program: %w", err)
 	}
 
-	mm, ok := m.(*main)
+	mm, ok := m.(*view.Main)
 	if !ok {
 		return errors.New("error getting last model")
 	}
-	if mm.output != "" {
-		t.logger.Debug("program output", slog.String("command", mm.output))
-		out.Produce(mm.output)
+	if mm.Output != "" {
+		t.logger.Debug("program output", slog.String("command", mm.Output))
+		out.Produce(mm.Output)
 		out.Clear()
 	}
 
