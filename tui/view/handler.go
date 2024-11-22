@@ -269,12 +269,11 @@ func (m *Main) handleExplainInput(msg tea.Msg) tea.Cmd {
 func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case msgs.RequestExplanationMsg:
-		m.logger.Debug("Explanation requested", slog.Any("cmd", msg.Command))
 		go m.fetchExplanation(msg.Command)
 	case msgs.SetExplanationMsg:
 		m.explainPanel.SetExplanation(msg.Explanation)
 	default:
-		m.logger.Debug("unknown async msg captured",
+		m.logger.Warn("unknown async msg captured",
 			slog.Any("msg", msg),
 			slog.Any("type", reflect.TypeOf(msg)),
 		)
