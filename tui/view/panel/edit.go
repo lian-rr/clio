@@ -97,48 +97,60 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 	}
 }
 
+// Init starts the input blink
+func (p *EditPanel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
 // Update handles the msgs.
-func (p *EditPanel) Update(msg tea.KeyMsg) (EditPanel, tea.Cmd) {
+func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 	inputCount := len(p.inputs)
 	var cmd tea.Cmd
-	switch {
-	case key.Matches(msg, ckey.DefaultMap.NextParamKey):
-		p.inputs[p.selectedInput].Blur()
-		p.selectedInput = (p.selectedInput + 1) % inputCount
-		p.inputs[p.selectedInput].Focus()
-	case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
-		p.inputs[p.selectedInput].Blur()
-		// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
-		p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
-		p.inputs[p.selectedInput].Focus()
-	case key.Matches(msg, ckey.DefaultMap.Enter):
-		if err := p.cmd.Build(); err != nil {
-			p.logger.Warn("error building param", slog.Any("error", err))
-			break
-		}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
+			p.inputs[p.selectedInput].Blur()
+			p.selectedInput = (p.selectedInput + 1) % inputCount
+			p.inputs[p.selectedInput].Focus()
+		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
+			p.inputs[p.selectedInput].Blur()
+			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
+			p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
+			p.inputs[p.selectedInput].Focus()
+		case key.Matches(msg, ckey.DefaultMap.Enter):
+			if err := p.cmd.Build(); err != nil {
+				p.logger.Warn("error building param", slog.Any("error", err))
+				break
+			}
 
-		p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
-		switch p.mode {
-		case NewCommandMode:
-			return *p, event.HandleNewCommandMsg(*p.cmd)
-		case EditCommandMode:
-			return *p, event.HandleUpdateCommandMsg(*p.cmd)
+			p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
+			switch p.mode {
+			case NewCommandMode:
+				return *p, event.HandleNewCommandMsg(*p.cmd)
+			case EditCommandMode:
+				return *p, event.HandleUpdateCommandMsg(*p.cmd)
+			default:
+				p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
+			}
 		default:
-			p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
+			var input textinput.Model
+			input, cmd = p.inputs[p.selectedInput].Update(msg)
+			p.inputs[p.selectedInput] = &input
+
+			// command didn't changed
+			if p.selectedInput > cmdInputPos {
+				p.updateParams()
+			} else {
+				if err := p.updateCommand(); err != nil {
+					p.logger.Warn("error building cmd", slog.Any("error", err))
+				}
+			}
 		}
 	default:
 		var input textinput.Model
 		input, cmd = p.inputs[p.selectedInput].Update(msg)
 		p.inputs[p.selectedInput] = &input
-
-		// command didn't changed
-		if p.selectedInput > cmdInputPos {
-			p.updateParams()
-		} else {
-			if err := p.updateCommand(); err != nil {
-				p.logger.Warn("error building cmd", slog.Any("error", err))
-			}
-		}
 	}
 	return *p, cmd
 }

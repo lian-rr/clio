@@ -14,6 +14,7 @@ type Map struct {
 	Back             key.Binding
 	New              key.Binding
 	Edit             key.Binding
+	Explain          key.Binding
 	Copy             key.Binding
 	NextParamKey     key.Binding
 	PreviousParamKey key.Binding
@@ -46,6 +47,9 @@ var DefaultMap = Map{
 	Edit: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit")),
+	Explain: key.NewBinding(
+		key.WithKeys("x"),
+		key.WithHelp("x", "explain")),
 	Copy: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "copy")),
@@ -71,6 +75,7 @@ func (km Map) ShortHelp() []key.Binding {
 		km.New,
 		km.Edit,
 		km.Copy,
+		km.Explain,
 		km.Delete,
 	}
 }

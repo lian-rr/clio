@@ -6,7 +6,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -34,6 +33,7 @@ type Main struct {
 	detailPanel   panel.DetailsPanel
 	executePanel  panel.ExecutePanel
 	editPanel     panel.EditPanel
+	explainPanel  panel.ExplainPanel
 	help          help.Model
 
 	focus     focus
@@ -54,10 +54,11 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 		titleStyle:     style.Title,
 		keys:           ckey.DefaultMap,
 		explorerPanel:  panel.NewExplorerPanel(),
-		searchPanel:    panel.NewSearchView(),
+		searchPanel:    panel.NewSearchView(logger),
 		detailPanel:    panel.NewDetailsPanel(logger),
 		executePanel:   panel.NewExecutePanel(logger),
 		editPanel:      panel.NewEditPanel(logger),
+		explainPanel:   panel.NewExplainPanel(logger),
 		help:           help.New(),
 		focus:          navigationFocus,
 		logger:         logger,
@@ -83,7 +84,6 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keys.ForceQuit) {
 			return m, tea.Quit
 		}
-		return m, m.handleInput(msg)
 	// window resize
 	case tea.WindowSizeMsg:
 		hor, ver := style.Document.GetFrameSize()
@@ -92,7 +92,7 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// mode update
 	case updateFocusMsg:
 		msg.UpdateFocus(m)
-		return m, nil
+		return m, m.initFocusedPanel()
 	// handle outcome
 	case event.ExecuteCommandMsg:
 		m.Output = msg.Command
@@ -108,20 +108,10 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, changeFocus(navigationFocus, nil)
 	}
-	return m, nil
+	return m, m.handleInput(msg)
 }
 
 func (m *Main) View() string {
-	var detailPanelContent string
-	switch m.focus {
-	case executeFocus:
-		detailPanelContent = m.executePanel.View()
-	case editFocus:
-		detailPanelContent = m.editPanel.View()
-	default:
-		detailPanelContent = m.detailPanel.View()
-	}
-
 	return style.Document.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
@@ -138,9 +128,9 @@ func (m *Main) View() string {
 					),
 					// 2nd column
 					lipgloss.JoinVertical(
-						lipgloss.Top,
+						lipgloss.Center,
 						m.titleStyle.Render(title),
-						detailPanelContent,
+						m.getPanelView(),
 					)),
 			),
 			style.Help.Render(m.help.View(m.keys)),
@@ -150,7 +140,9 @@ func (m *Main) View() string {
 
 func (m *Main) Init() tea.Cmd {
 	tea.SetWindowTitle(title)
-	return textinput.Blink
+	return tea.Batch(
+		m.explainPanel.Init(),
+	)
 }
 
 func (m *Main) updateComponentsDimensions(width, height int) {
@@ -167,15 +159,10 @@ func (m *Main) updateComponentsDimensions(width, height int) {
 	w, h = util.RelativeDimensions(width, height, .72, .91)
 	// title
 	m.titleStyle = m.titleStyle.Width(w)
-
-	// detail panel
 	m.detailPanel.SetSize(w, h)
-
-	// execute panel
 	m.executePanel.SetSize(w, h)
-
-	// edit panel
 	m.editPanel.SetSize(w, h)
+	m.explainPanel.SetSize(w, h)
 }
 
 func (m *Main) setContent(cmds []command.Command) error {
@@ -190,4 +177,31 @@ func (m *Main) setContent(cmds []command.Command) error {
 
 	m.explorerPanel.SetCommands(cmds)
 	return nil
+}
+
+func (m *Main) initFocusedPanel() tea.Cmd {
+	switch m.focus {
+	case searchFocus:
+		return m.searchPanel.Init()
+	case executeFocus:
+		return m.executePanel.Init()
+	case editFocus:
+		return m.editPanel.Init()
+	case explainFocus:
+		return m.explainPanel.Init()
+	}
+	return nil
+}
+
+func (m *Main) getPanelView() string {
+	switch m.focus {
+	case executeFocus:
+		return m.executePanel.View()
+	case editFocus:
+		return m.editPanel.View()
+	case explainFocus:
+		return m.explainPanel.View()
+	default:
+		return m.detailPanel.View()
+	}
 }
