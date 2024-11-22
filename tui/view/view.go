@@ -3,6 +3,7 @@ package view
 import (
 	"context"
 	"log/slog"
+	"reflect"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -10,8 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/panel"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
@@ -23,6 +24,7 @@ const title = "CLIo"
 type Main struct {
 	ctx            context.Context
 	commandManager manager
+	activityChan   chan msgs.AsyncMsg
 
 	keys   ckey.Map
 	logger *slog.Logger
@@ -51,6 +53,7 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 	m := Main{
 		ctx:            ctx,
 		commandManager: manager,
+		activityChan:   make(chan msgs.AsyncMsg),
 		titleStyle:     style.Title,
 		keys:           ckey.DefaultMap,
 		explorerPanel:  panel.NewExplorerPanel(),
@@ -86,23 +89,31 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	// window resize
 	case tea.WindowSizeMsg:
-		hor, ver := style.Document.GetFrameSize()
-		m.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
+		h, v := style.Document.GetFrameSize()
+		m.updateComponentsDimensions(msg.Width-h, msg.Height-v)
 		return m, nil
+	// async events
+	case msgs.AsyncMsg:
+		m.logger.Debug("Async message received",
+			slog.Any("msg", msg.Msg),
+			slog.Any("type outer", reflect.TypeOf(msg)),
+			slog.Any("type inner", reflect.TypeOf(msg.Msg)),
+		)
+		return m, m.handleAsyncActivities(msg.Msg)
 	// mode update
 	case updateFocusMsg:
 		msg.UpdateFocus(m)
 		return m, m.initFocusedPanel()
 	// handle outcome
-	case event.ExecuteCommandMsg:
+	case msgs.ExecuteCommandMsg:
 		m.Output = msg.Command
 		return m, tea.Quit
-	case event.NewCommandMsg:
+	case msgs.NewCommandMsg:
 		if err := m.saveCommand(msg.Command); err != nil {
 			m.logger.Error("error storing new command", slog.Any("error", err))
 		}
 		return m, changeFocus(navigationFocus, nil)
-	case event.UpdateCommandMsg:
+	case msgs.UpdateCommandMsg:
 		if err := m.editCommand(msg.Command); err != nil {
 			m.logger.Error("error editing command", slog.Any("error", err))
 		}
@@ -138,11 +149,22 @@ func (m *Main) View() string {
 	)
 }
 
+// Init starts the view.
 func (m *Main) Init() tea.Cmd {
 	tea.SetWindowTitle(title)
+
 	return tea.Batch(
+		msgs.AsyncHandler(m.activityChan),
+		m.editPanel.Init(),
+		m.explainPanel.Init(),
+		m.executePanel.Init(),
 		m.explainPanel.Init(),
 	)
+}
+
+// Close handles the closing of the main view.
+func (m *Main) Close() {
+	close(m.activityChan)
 }
 
 func (m *Main) updateComponentsDimensions(width, height int) {
@@ -205,3 +227,9 @@ func (m *Main) getPanelView() string {
 		return m.detailPanel.View()
 	}
 }
+
+func (m *Main) requestExplanation(cmd command.Command) tea.Cmd {
+	return msgs.HandleSetExplanationMsg(content)
+}
+
+const content = "# Summary\nThe command `git branch | grep -v \"{{.name}}\" | xargs git branch -D` is used to delete all local Git branches except for a specific branch indicated by the parameter `{{.name}}`. This command is useful for cleaning up branches in a local Git repository without having to delete each one manually.\n\n# Breakdown\n- `git branch`: This part lists all the local branches in the repository.\n- `|`: This symbol is a pipe that takes the output of the command on the left and uses it as input for the command on the right.\n- `grep -v \"{{.name}}\"`: `grep` is a command-line utility that searches for patterns in input. The `-v` option inverts the match, so it outputs all lines that do not match the specified pattern. Here, it excludes the branch named `{{.name}}` from the output.\n- `| xargs git branch -D`: The `xargs` command takes the output from the previous command (i.e., the list of branches to delete) and executes `git branch -D` on each of them. The `-D` option forces the deletion of branches without checking for unmerged changes.\n\n# Example of Use\nIf you want to delete all local branches except for `main`, you would replace `{{.name}}` with `main` in the command:\n\n```fish\ngit branch | grep -v \"main\" | xargs git branch -D\n```\n\nThis command will delete all local branches except the `main` branch.\n\n# Cautions\n- **Irreversibility**: The `-D` flag in `git branch -D` deletes branches forcefully and irreversibly. This action cannot be undone, so ensure that you really want to delete the branches.\n- **Current Branch**: Make sure you are not currently on the branch that you are trying to exclude, as this could lead to unintended behavior or errors.\n- **Branch Names**: Ensure that the branch name you are passing (i.e., `{{.name}}`) is correct and matches what you intend to keep. Any typos could lead to unwanted deletions.\n- **Safe Deletion**: If you want to review the branches before deletion, consider using `git branch | grep -v \"{{.name}}\"` alone first to see what branches will be deleted."

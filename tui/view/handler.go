@@ -2,10 +2,14 @@ package view
 
 import (
 	"log/slog"
+	"reflect"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/panel"
 )
 
@@ -95,14 +99,14 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				break
 			}
 
+			msgs.PublishAsyncMsg(m.activityChan, msgs.HandleRequestExplanationMsg(*item.Command))
+
 			return changeFocus(explainFocus, func(m *Main) {
 				err := m.explainPanel.SetCommand(*item.Command)
 				if err != nil {
 					m.logger.Error("error setting explain view content", slog.Any("error", err))
 				}
-				m.explainPanel.SetExplanation("")
 			})
-
 		case key.Matches(msg, m.keys.Delete):
 			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
@@ -260,4 +264,30 @@ func (m *Main) handleExplainInput(msg tea.Msg) tea.Cmd {
 		m.explainPanel, cmd = m.explainPanel.Update(msg)
 	}
 	return cmd
+}
+
+func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case msgs.RequestExplanationMsg:
+		m.logger.Debug("Explanation requested", slog.Any("cmd", msg.Command))
+		go m.fetchExplanation(msg.Command)
+	case msgs.SetExplanationMsg:
+		m.explainPanel.SetExplanation(msg.Explanation)
+	default:
+		m.logger.Debug("unknown async msg captured",
+			slog.Any("msg", msg),
+			slog.Any("type", reflect.TypeOf(msg)),
+		)
+	}
+
+	// restart event loop
+	return msgs.AsyncHandler(m.activityChan)
+}
+
+func (m *Main) fetchExplanation(cmd command.Command) {
+	time.Sleep(time.Second * 2)
+	msgs.PublishAsyncMsg(
+		m.activityChan,
+		msgs.HandleSetExplanationMsg(content),
+	)
 }

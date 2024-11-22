@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -127,9 +127,9 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 			p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
 			switch p.mode {
 			case NewCommandMode:
-				return *p, event.HandleNewCommandMsg(*p.cmd)
+				return *p, msgs.HandleNewCommandMsg(*p.cmd)
 			case EditCommandMode:
-				return *p, event.HandleUpdateCommandMsg(*p.cmd)
+				return *p, msgs.HandleUpdateCommandMsg(*p.cmd)
 			default:
 				p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
 			}

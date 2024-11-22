@@ -11,8 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -94,7 +94,7 @@ func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
 				p.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
-			return *p, event.HandleExecuteMsg(out)
+			return *p, msgs.HandleExecuteMsg(out)
 		}
 	default:
 		var input textinput.Model
