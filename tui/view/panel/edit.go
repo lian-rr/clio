@@ -38,7 +38,7 @@ const fixedInputs = 3
 
 // EditPanel handles the panel for editing or creating a command.
 type EditPanel struct {
-	cmd  *command.Command
+	cmd  command.Command
 	mode EditPanelMode
 	// cache the params inputs
 	paramsContent map[string][2]*textinput.Model
@@ -127,9 +127,9 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 			p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
 			switch p.mode {
 			case NewCommandMode:
-				return *p, msgs.HandleNewCommandMsg(*p.cmd)
+				return *p, msgs.HandleNewCommandMsg(p.cmd)
 			case EditCommandMode:
-				return *p, msgs.HandleUpdateCommandMsg(*p.cmd)
+				return *p, msgs.HandleUpdateCommandMsg(p.cmd)
 			default:
 				p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
 			}
@@ -211,9 +211,9 @@ func (p *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
 
 	p.mode = mode
 	if cmd == nil {
-		p.cmd = &command.Command{}
+		p.cmd = command.Command{}
 	} else {
-		p.cmd = cmd
+		p.cmd = *cmd
 		p.inputs[nameInputPos].SetValue(cmd.Name)
 		p.inputs[descInputPos].SetValue(cmd.Description)
 		p.inputs[cmdInputPos].SetValue(cmd.Command)
