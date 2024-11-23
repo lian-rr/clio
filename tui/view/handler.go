@@ -159,8 +159,11 @@ func (m *Main) handleExecuteInput(msg tea.Msg) tea.Cmd {
 					m.logger.Error("error setting detail view content", slog.Any("error", err))
 				}
 			})
+		default:
+			m.executePanel, cmd = m.executePanel.Update(msg)
 		}
 	default:
+		// pass control for any other event
 		m.executePanel, cmd = m.executePanel.Update(msg)
 	}
 	return cmd
@@ -185,6 +188,7 @@ func (m *Main) handleEditInput(msg tea.Msg) tea.Cmd {
 			m.editPanel, cmd = m.editPanel.Update(msg)
 		}
 	default:
+		// pass control for any other event
 		m.editPanel, cmd = m.editPanel.Update(msg)
 	}
 	return cmd
@@ -239,6 +243,7 @@ func (m *Main) handleSearchInput(msg tea.Msg) tea.Cmd {
 			}
 		}
 	default:
+		// pass control for any other event
 		m.searchPanel, cmd = m.searchPanel.Update(msg)
 	}
 	return cmd
@@ -259,8 +264,11 @@ func (m *Main) handleExplainInput(msg tea.Msg) tea.Cmd {
 					m.logger.Error("error setting detail view content", slog.Any("error", err))
 				}
 			})
+		default:
+			m.explainPanel, cmd = m.explainPanel.Update(msg)
 		}
 	default:
+		// pass control for any other event
 		m.explainPanel, cmd = m.explainPanel.Update(msg)
 	}
 	return cmd

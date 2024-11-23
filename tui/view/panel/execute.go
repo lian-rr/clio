@@ -86,17 +86,20 @@ func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
 				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 			}
 		case key.Matches(msg, ckey.DefaultMap.Enter):
-			if paramCount > 1 {
-				p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
-			}
 			out, err := p.produceCommand()
 			if err != nil {
 				p.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
 			return *p, msgs.HandleExecuteMsg(out)
+		default:
+			var input textinput.Model
+			param := p.orderedParams[p.selectedInput]
+			input, cmd = p.paramInputs[param].Update(msg)
+			p.paramInputs[param] = &input
 		}
 	default:
+		// handling blinking mostly
 		var input textinput.Model
 		param := p.orderedParams[p.selectedInput]
 		input, cmd = p.paramInputs[param].Update(msg)

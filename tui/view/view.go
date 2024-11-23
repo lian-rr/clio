@@ -3,7 +3,6 @@ package view
 import (
 	"context"
 	"log/slog"
-	"reflect"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -94,11 +93,6 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	// async events
 	case msgs.AsyncMsg:
-		m.logger.Debug("Async message received",
-			slog.Any("msg", msg.Msg),
-			slog.Any("type outer", reflect.TypeOf(msg)),
-			slog.Any("type inner", reflect.TypeOf(msg.Msg)),
-		)
 		return m, m.handleAsyncActivities(msg.Msg)
 	// mode update
 	case updateFocusMsg:
@@ -106,6 +100,7 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.initFocusedPanel()
 	// handle outcome
 	case msgs.ExecuteCommandMsg:
+		m.logger.Debug("execute msg received")
 		m.Output = msg.Command
 		return m, tea.Quit
 	case msgs.NewCommandMsg:
