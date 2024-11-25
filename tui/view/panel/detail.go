@@ -56,8 +56,7 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
-		// view:        viewport.New(0, 0),
-		titleStyle: style.Title,
+		titleStyle:  style.Title,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),

@@ -1,6 +1,8 @@
 package panel
 
 import (
+	"log/slog"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -9,11 +11,12 @@ import (
 )
 
 type SearchView struct {
-	title string
-	input textinput.Model
+	logger *slog.Logger
+	title  string
+	input  textinput.Model
 }
 
-func NewSearchView() SearchView {
+func NewSearchView(logger *slog.Logger) SearchView {
 	input := textinput.New()
 	input.Placeholder = "type something"
 	input.TextStyle = lipgloss.NewStyle().
@@ -24,12 +27,19 @@ func NewSearchView() SearchView {
 		})
 
 	return SearchView{
-		title: "Search",
-		input: input,
+		title:  "Search",
+		input:  input,
+		logger: logger,
 	}
 }
 
+// Init starts the input blink
+func (p *SearchView) Init() tea.Cmd {
+	return textinput.Blink
+}
+
 func (p *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
+	p.logger.Debug("update in search", slog.Any("msg", msg))
 	var cmd tea.Cmd
 	p.input, cmd = p.input.Update(msg)
 	return *p, cmd

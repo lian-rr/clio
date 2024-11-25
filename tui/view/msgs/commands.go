@@ -1,4 +1,4 @@
-package event
+package msgs
 
 import (
 	tea "github.com/charmbracelet/bubbletea"

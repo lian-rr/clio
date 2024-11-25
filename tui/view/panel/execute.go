@@ -11,8 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -60,35 +60,46 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 	}
 }
 
+// Init starts the input blink
+func (p *ExecutePanel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
 // Update handles the msgs.
-func (p *ExecutePanel) Update(msg tea.KeyMsg) (ExecutePanel, tea.Cmd) {
+func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
 	paramCount := len(p.paramInputs)
 	var cmd tea.Cmd
-	switch {
-	case key.Matches(msg, ckey.DefaultMap.NextParamKey):
-		if paramCount > 1 {
-			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
-			p.selectedInput = (p.selectedInput + 1) % paramCount
-			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
+			if paramCount > 1 {
+				p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
+				p.selectedInput = (p.selectedInput + 1) % paramCount
+				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
+			}
+		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
+			if paramCount > 1 {
+				p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
+				// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
+				p.selectedInput = ((p.selectedInput-1)%paramCount + paramCount) % paramCount
+				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
+			}
+		case key.Matches(msg, ckey.DefaultMap.Enter):
+			out, err := p.produceCommand()
+			if err != nil {
+				p.logger.Warn("producing incomplete command", slog.Any("error", err))
+				break
+			}
+			return *p, msgs.HandleExecuteMsg(out)
+		default:
+			var input textinput.Model
+			param := p.orderedParams[p.selectedInput]
+			input, cmd = p.paramInputs[param].Update(msg)
+			p.paramInputs[param] = &input
 		}
-	case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
-		if paramCount > 1 {
-			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
-			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
-			p.selectedInput = ((p.selectedInput-1)%paramCount + paramCount) % paramCount
-			p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
-		}
-	case key.Matches(msg, ckey.DefaultMap.Enter):
-		if paramCount > 1 {
-			p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
-		}
-		out, err := p.produceCommand()
-		if err != nil {
-			p.logger.Warn("producing incomplete command", slog.Any("error", err))
-			break
-		}
-		return *p, event.HandleExecuteMsg(out)
 	default:
+		// handling blinking mostly
 		var input textinput.Model
 		param := p.orderedParams[p.selectedInput]
 		input, cmd = p.paramInputs[param].Update(msg)

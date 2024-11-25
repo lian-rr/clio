@@ -23,11 +23,11 @@ type Manager struct {
 }
 
 // NewManager returns a new Manager.
-func NewManager(store store) (*Manager, error) {
+func NewManager(store store) (Manager, error) {
 	if store == nil {
-		return nil, errors.New("nil store")
+		return Manager{}, errors.New("nil store")
 	}
-	return &Manager{
+	return Manager{
 		store: store,
 	}, nil
 }

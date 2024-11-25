@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/teacher"
 	"github.com/lian-rr/clio/out"
 	"github.com/lian-rr/clio/tui/view"
 )
@@ -20,8 +21,13 @@ type Tui struct {
 }
 
 // New returns a new TUI container.
-func New(ctx context.Context, manager *command.Manager, logger *slog.Logger) (Tui, error) {
-	model, err := view.New(ctx, manager, logger)
+func New(ctx context.Context, manager *command.Manager, logger *slog.Logger, teacher *teacher.Teacher) (Tui, error) {
+	opts := make([]view.OptFunc, 0)
+	if teacher != nil {
+		opts = append(opts, view.WithTeacher(teacher))
+	}
+
+	model, err := view.New(ctx, manager, logger, opts...)
 	if err != nil {
 		return Tui{}, fmt.Errorf("error starting the main model: %w", err)
 	}

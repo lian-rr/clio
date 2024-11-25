@@ -13,6 +13,7 @@ const (
 	editFocus
 	searchFocus
 	executeFocus
+	explainFocus
 )
 
 type updateFocusMsg struct {
