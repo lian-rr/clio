@@ -6,13 +6,12 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/tui/view/event"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/panel"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
@@ -22,8 +21,10 @@ const title = "CLIo"
 
 // Main is the main view for the TUI.
 type Main struct {
-	ctx            context.Context
-	commandManager manager
+	ctx               context.Context
+	commandController controller
+	professor         professor
+	activityChan      chan msgs.AsyncMsg
 
 	keys   ckey.Map
 	logger *slog.Logger
@@ -34,6 +35,7 @@ type Main struct {
 	detailPanel   panel.DetailsPanel
 	executePanel  panel.ExecutePanel
 	editPanel     panel.EditPanel
+	explainPanel  panel.ExplainPanel
 	help          help.Model
 
 	focus     focus
@@ -46,21 +48,31 @@ type Main struct {
 	Output string
 }
 
+type professor interface {
+	Explain(ctx context.Context, cmd command.Command) (string, error)
+}
+
 // New returns a new main view.
-func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, error) {
+func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
 	m := Main{
-		ctx:            ctx,
-		commandManager: manager,
-		titleStyle:     style.Title,
-		keys:           ckey.DefaultMap,
-		explorerPanel:  panel.NewExplorerPanel(),
-		searchPanel:    panel.NewSearchView(),
-		detailPanel:    panel.NewDetailsPanel(logger),
-		executePanel:   panel.NewExecutePanel(logger),
-		editPanel:      panel.NewEditPanel(logger),
-		help:           help.New(),
-		focus:          navigationFocus,
-		logger:         logger,
+		ctx:               ctx,
+		commandController: manager,
+		activityChan:      make(chan msgs.AsyncMsg),
+		titleStyle:        style.Title,
+		keys:              ckey.DefaultMap,
+		explorerPanel:     panel.NewExplorerPanel(),
+		searchPanel:       panel.NewSearchView(logger),
+		detailPanel:       panel.NewDetailsPanel(logger),
+		executePanel:      panel.NewExecutePanel(logger),
+		editPanel:         panel.NewEditPanel(logger),
+		explainPanel:      panel.NewExplainPanel(logger),
+		help:              help.New(),
+		focus:             navigationFocus,
+		logger:            logger,
+	}
+
+	for _, opt := range opts {
+		opt(&m)
 	}
 
 	cmds, err := m.fechCommands()
@@ -83,45 +95,38 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keys.ForceQuit) {
 			return m, tea.Quit
 		}
-		return m, m.handleInput(msg)
 	// window resize
 	case tea.WindowSizeMsg:
-		hor, ver := style.Document.GetFrameSize()
-		m.updateComponentsDimensions(msg.Width-hor, msg.Height-ver)
+		h, v := style.Document.GetFrameSize()
+		m.updateComponentsDimensions(msg.Width-h, msg.Height-v)
 		return m, nil
+	// async events
+	case msgs.AsyncMsg:
+		return m, m.handleAsyncActivities(msg.Msg)
 	// mode update
 	case updateFocusMsg:
 		msg.UpdateFocus(m)
-		return m, nil
+		return m, m.initFocusedPanel()
 	// handle outcome
-	case event.ExecuteCommandMsg:
+	case msgs.ExecuteCommandMsg:
+		m.logger.Debug("execute msg received")
 		m.Output = msg.Command
 		return m, tea.Quit
-	case event.NewCommandMsg:
+	case msgs.NewCommandMsg:
 		if err := m.saveCommand(msg.Command); err != nil {
 			m.logger.Error("error storing new command", slog.Any("error", err))
 		}
 		return m, changeFocus(navigationFocus, nil)
-	case event.UpdateCommandMsg:
+	case msgs.UpdateCommandMsg:
 		if err := m.editCommand(msg.Command); err != nil {
 			m.logger.Error("error editing command", slog.Any("error", err))
 		}
 		return m, changeFocus(navigationFocus, nil)
 	}
-	return m, nil
+	return m, m.handleInput(msg)
 }
 
 func (m *Main) View() string {
-	var detailPanelContent string
-	switch m.focus {
-	case executeFocus:
-		detailPanelContent = m.executePanel.View()
-	case editFocus:
-		detailPanelContent = m.editPanel.View()
-	default:
-		detailPanelContent = m.detailPanel.View()
-	}
-
 	return style.Document.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
@@ -138,9 +143,9 @@ func (m *Main) View() string {
 					),
 					// 2nd column
 					lipgloss.JoinVertical(
-						lipgloss.Top,
+						lipgloss.Center,
 						m.titleStyle.Render(title),
-						detailPanelContent,
+						m.getPanelView(),
 					)),
 			),
 			style.Help.Render(m.help.View(m.keys)),
@@ -148,9 +153,22 @@ func (m *Main) View() string {
 	)
 }
 
+// Init starts the view.
 func (m *Main) Init() tea.Cmd {
 	tea.SetWindowTitle(title)
-	return textinput.Blink
+
+	return tea.Batch(
+		msgs.AsyncHandler(m.activityChan),
+		m.editPanel.Init(),
+		m.explainPanel.Init(),
+		m.executePanel.Init(),
+		m.explainPanel.Init(),
+	)
+}
+
+// Close handles the closing of the main view.
+func (m *Main) Close() {
+	close(m.activityChan)
 }
 
 func (m *Main) updateComponentsDimensions(width, height int) {
@@ -167,15 +185,10 @@ func (m *Main) updateComponentsDimensions(width, height int) {
 	w, h = util.RelativeDimensions(width, height, .72, .91)
 	// title
 	m.titleStyle = m.titleStyle.Width(w)
-
-	// detail panel
 	m.detailPanel.SetSize(w, h)
-
-	// execute panel
 	m.executePanel.SetSize(w, h)
-
-	// edit panel
 	m.editPanel.SetSize(w, h)
+	m.explainPanel.SetSize(w, h)
 }
 
 func (m *Main) setContent(cmds []command.Command) error {
@@ -190,4 +203,31 @@ func (m *Main) setContent(cmds []command.Command) error {
 
 	m.explorerPanel.SetCommands(cmds)
 	return nil
+}
+
+func (m *Main) initFocusedPanel() tea.Cmd {
+	switch m.focus {
+	case searchFocus:
+		return m.searchPanel.Init()
+	case executeFocus:
+		return m.executePanel.Init()
+	case editFocus:
+		return m.editPanel.Init()
+	case explainFocus:
+		return m.explainPanel.Init()
+	}
+	return nil
+}
+
+func (m *Main) getPanelView() string {
+	switch m.focus {
+	case executeFocus:
+		return m.executePanel.View()
+	case editFocus:
+		return m.editPanel.View()
+	case explainFocus:
+		return m.explainPanel.View()
+	default:
+		return m.detailPanel.View()
+	}
 }

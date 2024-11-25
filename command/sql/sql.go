@@ -1,4 +1,4 @@
-package store
+package sql
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/command/store/sqlite"
+	"github.com/lian-rr/clio/command/sql/sqlite"
 )
 
 // ErrNotFound used when the searched element wasn't found.
@@ -174,7 +174,7 @@ func (s *Sql) SearchCommand(ctx context.Context, term string) ([]command.Command
 
 // DeleteCommand removes a command and it's params.
 func (s *Sql) DeleteCommand(ctx context.Context, id uuid.UUID) error {
-	_, err := s.db.ExecContext(ctx, sqlite.DeleteCommand, id.String())
+	_, err := s.db.ExecContext(ctx, sqlite.DeleteCommandQuery, id.String())
 	if err != nil {
 		return fmt.Errorf("error removing command with ID %q: %w", id, err)
 	}
@@ -188,8 +188,43 @@ func (s *Sql) DeleteParameters(ctx context.Context, ids []uuid.UUID) error {
 		strIDs = append(strIDs, id.String())
 	}
 
-	if _, err := s.db.ExecContext(ctx, sqlite.DeleteParameters, strings.Join(strIDs, ",")); err != nil {
+	if _, err := s.db.ExecContext(ctx, sqlite.DeleteParametersQuery, strings.Join(strIDs, ",")); err != nil {
 		return fmt.Errorf("error removing parameters: %v", err)
+	}
+	return nil
+}
+
+// WriteExplanation writes the explanation for a command.
+func (s *Sql) WriteExplanation(ctx context.Context, cmdID uuid.UUID, explanation string) error {
+	_, err := s.db.ExecContext(ctx, sqlite.UpsertExplanationQuery, cmdID.String(), explanation)
+	if err != nil {
+		return fmt.Errorf("error writing explanation: %v", err)
+	}
+	return nil
+}
+
+// ReadExplanation reads the explanation of a command.
+func (s *Sql) ReadExplanation(ctx context.Context, cmdID uuid.UUID) (string, error) {
+	row := s.db.QueryRowContext(ctx, sqlite.GetExplanationByCommandID, cmdID.String())
+	var (
+		commandID   string
+		explanation string
+	)
+	if err := row.Scan(&commandID, &explanation); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+
+	return explanation, nil
+}
+
+// DeleteExplanation removes the explanation of a command.
+func (s *Sql) DeleteExplanation(ctx context.Context, cmdID uuid.UUID) error {
+	_, err := s.db.ExecContext(ctx, sqlite.DeleteExplanationQuery, cmdID.String())
+	if err != nil {
+		return fmt.Errorf("error delete explanation: %v", err)
 	}
 	return nil
 }
@@ -230,6 +265,7 @@ func WithSqliteDriver(ctx context.Context, path string) SqlOptFunc {
 			sqlite.InsertCommandFtsTrigger,
 			sqlite.UpdateCommandFtsTrigger,
 			sqlite.DeleteCommandFtsTrigger,
+			sqlite.NotebookTableQuery,
 			// testCommands,
 			// testParams,
 		}

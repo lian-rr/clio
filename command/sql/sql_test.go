@@ -1,4 +1,4 @@
-package store
+package sql
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lian-rr/clio/command"
-	"github.com/lian-rr/clio/command/store/sqlite"
+	"github.com/lian-rr/clio/command/sql/sqlite"
 )
 
 func TestNewLocal(t *testing.T) {
