@@ -23,6 +23,7 @@ const title = "CLIo"
 type Main struct {
 	ctx            context.Context
 	commandManager manager
+	teacher        teacher
 	activityChan   chan msgs.AsyncMsg
 
 	keys   ckey.Map
@@ -47,8 +48,10 @@ type Main struct {
 	Output string
 }
 
+type teacher interface{}
+
 // New returns a new main view.
-func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, error) {
+func New(ctx context.Context, manager manager, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
 	m := Main{
 		ctx:            ctx,
 		commandManager: manager,
@@ -64,6 +67,10 @@ func New(ctx context.Context, manager manager, logger *slog.Logger) (*Main, erro
 		help:           help.New(),
 		focus:          navigationFocus,
 		logger:         logger,
+	}
+
+	for _, opt := range opts {
+		opt(&m)
 	}
 
 	cmds, err := m.fechCommands()

@@ -11,6 +11,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.23
+	github.com/openai/openai-go v0.1.0-alpha.38
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/sys v0.26.0
 )
@@ -38,6 +39,10 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/yuin/goldmark v1.7.4 // indirect
 	github.com/yuin/goldmark-emoji v1.0.3 // indirect
 	golang.org/x/net v0.27.0 // indirect

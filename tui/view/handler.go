@@ -94,6 +94,11 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				}
 			})
 		case key.Matches(msg, m.keys.Explain):
+			if m.teacher == nil {
+				m.logger.Debug("teacher not available")
+				break
+			}
+
 			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
 				break
