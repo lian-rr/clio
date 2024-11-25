@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/manager"
 	"github.com/lian-rr/clio/command/professor"
 	"github.com/lian-rr/clio/command/professor/openai"
-	"github.com/lian-rr/clio/command/store"
+	"github.com/lian-rr/clio/command/sql"
 	"github.com/lian-rr/clio/config"
 	"github.com/lian-rr/clio/tui"
 )
@@ -49,7 +49,7 @@ func run() error {
 		return err
 	}
 
-	sqlStore, err := store.NewSql(logger, store.WithSqliteDriver(ctx, cfg.BasePath))
+	sqlStore, err := sql.NewSql(logger, sql.WithSqliteDriver(ctx, cfg.BasePath))
 	if err != nil {
 		slog.Error("error initializing the local store", slog.Any("error", err))
 		return err
@@ -62,7 +62,7 @@ func run() error {
 		logger.Debug("Store closed successfully")
 	}()
 
-	manager, err := command.NewManager(sqlStore)
+	manager, err := manager.NewManager(sqlStore, sqlStore)
 	if err != nil {
 		slog.Error("error starting command manager", slog.Any("error", err))
 		return err

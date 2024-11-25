@@ -8,7 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/manager"
 	"github.com/lian-rr/clio/command/professor"
 	"github.com/lian-rr/clio/out"
 	"github.com/lian-rr/clio/tui/view"
@@ -21,7 +21,7 @@ type Tui struct {
 }
 
 // New returns a new TUI container.
-func New(ctx context.Context, manager *command.Manager, logger *slog.Logger, professor *professor.Professor) (Tui, error) {
+func New(ctx context.Context, manager *manager.Manager, logger *slog.Logger, professor *professor.Professor) (Tui, error) {
 	opts := make([]view.OptFunc, 0)
 	if professor != nil {
 		opts = append(opts, view.WithProfessor(professor))

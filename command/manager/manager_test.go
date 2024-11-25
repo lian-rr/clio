@@ -1,4 +1,4 @@
-package command
+package manager
 
 import (
 	"context"
@@ -9,17 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lian-rr/clio/command"
 )
 
 func TestManager_Add(t *testing.T) {
 	mockErr := errors.New("mock error")
-	testCmd := Command{
+	testCmd := command.Command{
 		Name:        "test command",
 		Description: "this is a test command",
 		Command:     "echo 'hello world'",
 	}
 
-	commandMatcher := func(cmd Command) bool {
+	commandMatcher := func(cmd command.Command) bool {
 		return cmd.Name == testCmd.Name &&
 			cmd.Command == testCmd.Command &&
 			cmd.Description == testCmd.Description
@@ -28,7 +30,7 @@ func TestManager_Add(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedError  error
-		input          Command
+		input          command.Command
 		setExpectation func(mock *mockStore, ctx context.Context)
 	}{
 		{
@@ -79,7 +81,7 @@ func TestManager_GetOne(t *testing.T) {
 	id, err := uuid.NewV7()
 	require.NoError(t, err)
 
-	testCmd := Command{
+	testCmd := command.Command{
 		ID:          id,
 		Name:        "test command",
 		Description: "this is a test command",
@@ -97,7 +99,7 @@ func TestManager_GetOne(t *testing.T) {
 			expectedError: mockErr,
 			input:         id.String(),
 			setExpectation: func(testMock *mockStore, ctx context.Context) {
-				testMock.On("GetCommandByID", ctx, id).Return(Command{}, mockErr)
+				testMock.On("GetCommandByID", ctx, id).Return(command.Command{}, mockErr)
 			},
 		},
 		{
@@ -143,7 +145,7 @@ func TestManager_Search(t *testing.T) {
 	id3, err := uuid.NewV7()
 	require.NoError(t, err)
 
-	testCmds := []Command{
+	testCmds := []command.Command{
 		{
 			ID:          id,
 			Name:        "test command",
@@ -221,7 +223,7 @@ func TestManager_GetAll(t *testing.T) {
 	id3, err := uuid.NewV7()
 	require.NoError(t, err)
 
-	testCmds := []Command{
+	testCmds := []command.Command{
 		{
 			ID:          id,
 			Name:        "test command",
@@ -293,36 +295,36 @@ type mockStore struct {
 
 var _ store = (*mockStore)(nil)
 
-func (m *mockStore) Save(ctx context.Context, cmd Command) error {
+func (m *mockStore) Save(ctx context.Context, cmd command.Command) error {
 	args := m.Called(ctx, cmd)
 	return args.Error(0)
 }
 
-func (m *mockStore) GetCommandByID(ctx context.Context, id uuid.UUID) (Command, error) {
+func (m *mockStore) GetCommandByID(ctx context.Context, id uuid.UUID) (command.Command, error) {
 	args := m.Called(ctx, id)
 	cmd := args.Get(0)
 	if cmd == nil {
-		return Command{}, args.Error(1)
+		return command.Command{}, args.Error(1)
 	}
-	return cmd.(Command), args.Error(1)
+	return cmd.(command.Command), args.Error(1)
 }
 
-func (m *mockStore) SearchCommand(ctx context.Context, term string) ([]Command, error) {
+func (m *mockStore) SearchCommand(ctx context.Context, term string) ([]command.Command, error) {
 	args := m.Called(ctx, term)
 	cmds := args.Get(0)
 	if cmds == nil {
 		return nil, args.Error(1)
 	}
-	return cmds.([]Command), args.Error(1)
+	return cmds.([]command.Command), args.Error(1)
 }
 
-func (m *mockStore) ListCommands(ctx context.Context) ([]Command, error) {
+func (m *mockStore) ListCommands(ctx context.Context) ([]command.Command, error) {
 	args := m.Called(ctx)
 	cmds := args.Get(0)
 	if cmds == nil {
 		return nil, args.Error(1)
 	}
-	return cmds.([]Command), args.Error(1)
+	return cmds.([]command.Command), args.Error(1)
 }
 
 func (m *mockStore) DeleteCommand(ctx context.Context, id uuid.UUID) error {

@@ -21,10 +21,10 @@ const title = "CLIo"
 
 // Main is the main view for the TUI.
 type Main struct {
-	ctx            context.Context
-	commandManager manager
-	professor      professor
-	activityChan   chan msgs.AsyncMsg
+	ctx               context.Context
+	commandController controller
+	professor         professor
+	activityChan      chan msgs.AsyncMsg
 
 	keys   ckey.Map
 	logger *slog.Logger
@@ -53,22 +53,22 @@ type professor interface {
 }
 
 // New returns a new main view.
-func New(ctx context.Context, manager manager, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
+func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
 	m := Main{
-		ctx:            ctx,
-		commandManager: manager,
-		activityChan:   make(chan msgs.AsyncMsg),
-		titleStyle:     style.Title,
-		keys:           ckey.DefaultMap,
-		explorerPanel:  panel.NewExplorerPanel(),
-		searchPanel:    panel.NewSearchView(logger),
-		detailPanel:    panel.NewDetailsPanel(logger),
-		executePanel:   panel.NewExecutePanel(logger),
-		editPanel:      panel.NewEditPanel(logger),
-		explainPanel:   panel.NewExplainPanel(logger),
-		help:           help.New(),
-		focus:          navigationFocus,
-		logger:         logger,
+		ctx:               ctx,
+		commandController: manager,
+		activityChan:      make(chan msgs.AsyncMsg),
+		titleStyle:        style.Title,
+		keys:              ckey.DefaultMap,
+		explorerPanel:     panel.NewExplorerPanel(),
+		searchPanel:       panel.NewSearchView(logger),
+		detailPanel:       panel.NewDetailsPanel(logger),
+		executePanel:      panel.NewExecutePanel(logger),
+		editPanel:         panel.NewEditPanel(logger),
+		explainPanel:      panel.NewExplainPanel(logger),
+		help:              help.New(),
+		focus:             navigationFocus,
+		logger:            logger,
 	}
 
 	for _, opt := range opts {

@@ -28,6 +28,17 @@ const (
 	CREATE VIRTUAL TABLE IF NOT EXISTS commands_fts
 	USING fts5(id UNINDEXED, name, command, description);
 	`
+
+	NotebookTableQuery = `
+	CREATE TABLE IF NOT EXISTS notebook (
+		command VARCHAR(16) PRIMARY KEY,
+		explanation TEXT,
+
+		CONSTRAINT fk_command
+			FOREIGN KEY (command)
+			REFERENCES commands(id)
+			ON DELETE CASCADE
+	)`
 )
 
 // triggers
@@ -112,7 +123,25 @@ const (
 	WHERE commands_fts MATCH ?
 	ORDER BY bm25(commands_fts, 0, 15, 10, 5)`
 
-	DeleteCommand = `DELETE FROM commands WHERE id = ?`
+	DeleteCommandQuery = `DELETE FROM commands WHERE id = ?`
 
-	DeleteParameters = `DELETE FROM parameters WHERE id IN (?)`
+	DeleteParametersQuery = `DELETE FROM parameters WHERE id IN (?)`
+
+	UpsertExplanationQuery = `
+	INSERT INTO 
+		notebook(command, explanation) 
+	VALUES (?, ?)
+	ON CONFLICT (command) 
+	DO
+		UPDATE SET 
+			explanation = excluded.explanation
+		WHERE excluded.command = notebook.command`
+
+	GetExplanationByCommandID = `
+	SELECT 
+		command, explanation
+	FROM notebook
+	WHERE command = ?`
+
+	DeleteExplanationQuery = `DELETE FROM notebook WHERE command = ?`
 )

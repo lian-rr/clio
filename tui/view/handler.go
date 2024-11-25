@@ -2,14 +2,17 @@ package view
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"reflect"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/manager"
 	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/panel"
 )
@@ -96,7 +99,7 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 			})
 		case key.Matches(msg, m.keys.Explain):
 			if m.professor == nil {
-				m.logger.Debug("professor not available")
+				m.logger.Warn("professor not available")
 				break
 			}
 
@@ -285,7 +288,14 @@ func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 	case msgs.RequestExplanationMsg:
 		go m.fetchExplanation(msg.Command)
 	case msgs.SetExplanationMsg:
+		if msg.Cache {
+			go m.cacheExplanation(msg.CommandID, msg.Explanation)
+		}
 		m.explainPanel.SetExplanation(msg.Explanation)
+	case msgs.CacheExplanationMsg:
+		go m.cacheExplanation(msg.CommandID, msg.Explanation)
+	case msgs.EvictCachedExplanationMsg:
+		go m.deleteExplanation(msg.CommandID)
 	default:
 		m.logger.Warn("unknown async msg captured",
 			slog.Any("msg", msg),
@@ -301,14 +311,53 @@ func (m *Main) fetchExplanation(cmd command.Command) {
 	ctx, cancel := context.WithTimeout(m.ctx, time.Second*60)
 	defer cancel()
 
-	explanation, err := m.professor.Explain(ctx, cmd)
+	var cache bool
+	explanation, err := m.commandController.ReadExplanation(ctx, cmd.ID)
 	if err != nil {
-		m.logger.Error("error getting command explanation", slog.Any("command", "cmd"), slog.Any("error", err))
-		return
+		if !errors.Is(err, manager.ErrElementNotFound) {
+			m.logger.Error("error getting command explanation from cache",
+				slog.Any("command", "cmd"),
+				slog.Any("error", err),
+			)
+		}
+
+		m.logger.Debug("getting explanation from professor")
+		explanation, err = m.professor.Explain(ctx, cmd)
+		if err != nil {
+			m.logger.Error("error getting command explanation from professor",
+				slog.Any("command", "cmd"),
+				slog.Any("error", err),
+			)
+			return
+		}
+
+		cache = true
 	}
 
 	msgs.PublishAsyncMsg(
 		m.activityChan,
-		msgs.HandleSetExplanationMsg(explanation),
+		msgs.HandleSetExplanationMsg(cmd.ID, explanation, cache),
 	)
+}
+
+func (m *Main) cacheExplanation(commandID uuid.UUID, explanation string) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*400)
+	defer cancel()
+
+	m.logger.Debug("attempting to cache explanation")
+	err := m.commandController.WriteExplanation(ctx, commandID, explanation)
+	if err != nil {
+		m.logger.Error("error writing explanation in cache", slog.Any("error", err))
+	}
+}
+
+func (m *Main) deleteExplanation(commandID uuid.UUID) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*400)
+	defer cancel()
+
+	m.logger.Debug("attempting to delete explanation cache")
+	err := m.commandController.DeleteExplanation(ctx, commandID)
+	if err != nil {
+		m.logger.Error("error deleting explanation from cache", slog.Any("error", err))
+	}
 }
