@@ -6,18 +6,22 @@ import (
 	"strconv"
 )
 
+// TeacherType type for the teacher implementation.
 type TeacherType string
 
 const (
+	// OpenAITeacher used for setting OpenAI as the teacher source.
 	OpenAITeacher TeacherType = "openai"
 )
 
+// TeacherConfig is the config for the Teacher feature.
 type TeacherConfig struct {
 	Enabled bool
 	Type    TeacherType
 	OpenAI  OpenAIConfig
 }
 
+// OpenAIConfig holds the configuration for setting the OpenAI teacher source.
 type OpenAIConfig struct {
 	ApiKey       string
 	CustomPrompt string
