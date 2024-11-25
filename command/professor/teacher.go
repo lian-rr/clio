@@ -1,4 +1,4 @@
-package teacher
+package professor
 
 import (
 	"context"
@@ -11,23 +11,23 @@ import (
 // ErrSourceNotSet thrown when the source is not set.
 var ErrSourceNotSet error = errors.New("source not set")
 
-// Source is the source of information for the teacher.
+// Source is the source of information for the professor.
 type Source interface {
 	Prompt(context.Context, string) (string, error)
 }
 
 // OptFunc used for setting optional configs.
-type OptFunc func(teacher *Teacher)
+type OptFunc func(profe *Professor)
 
-// Teacher handles the explanation of commands.
-type Teacher struct {
+// Professor handles the explanation of commands.
+type Professor struct {
 	source Source
 	logger *slog.Logger
 }
 
-// New returns a new teacher.
-func New(source Source, logger *slog.Logger, opts ...OptFunc) Teacher {
-	teach := Teacher{
+// New returns a new Professor.
+func New(source Source, logger *slog.Logger, opts ...OptFunc) Professor {
+	teach := Professor{
 		source: source,
 		logger: logger,
 	}
@@ -40,12 +40,12 @@ func New(source Source, logger *slog.Logger, opts ...OptFunc) Teacher {
 }
 
 // Explain the passed command. If the source is not set, then it will return ErrSourceNotSet.
-func (t Teacher) Explain(ctx context.Context, cmd command.Command) (string, error) {
-	if t.source == nil {
+func (p Professor) Explain(ctx context.Context, cmd command.Command) (string, error) {
+	if p.source == nil {
 		return "", ErrSourceNotSet
 	}
 
-	resp, err := t.source.Prompt(ctx, cmd.Command)
+	resp, err := p.source.Prompt(ctx, cmd.Command)
 	if err != nil {
 		return "", err
 	}

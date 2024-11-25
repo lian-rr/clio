@@ -95,8 +95,8 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				}
 			})
 		case key.Matches(msg, m.keys.Explain):
-			if m.teacher == nil {
-				m.logger.Debug("teacher not available")
+			if m.professor == nil {
+				m.logger.Debug("professor not available")
 				break
 			}
 
@@ -301,7 +301,7 @@ func (m *Main) fetchExplanation(cmd command.Command) {
 	ctx, cancel := context.WithTimeout(m.ctx, time.Second*60)
 	defer cancel()
 
-	explanation, err := m.teacher.Explain(ctx, cmd)
+	explanation, err := m.professor.Explain(ctx, cmd)
 	if err != nil {
 		m.logger.Error("error getting command explanation", slog.Any("command", "cmd"), slog.Any("error", err))
 		return

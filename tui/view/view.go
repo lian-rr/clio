@@ -23,7 +23,7 @@ const title = "CLIo"
 type Main struct {
 	ctx            context.Context
 	commandManager manager
-	teacher        teacher
+	professor      professor
 	activityChan   chan msgs.AsyncMsg
 
 	keys   ckey.Map
@@ -48,7 +48,7 @@ type Main struct {
 	Output string
 }
 
-type teacher interface {
+type professor interface {
 	Explain(ctx context.Context, cmd command.Command) (string, error)
 }
 

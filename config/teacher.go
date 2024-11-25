@@ -6,22 +6,22 @@ import (
 	"strconv"
 )
 
-// TeacherType type for the teacher implementation.
-type TeacherType string
+// ProfessorType type for the professor implementation.
+type ProfessorType string
 
 const (
-	// OpenAITeacher used for setting OpenAI as the teacher source.
-	OpenAITeacher TeacherType = "openai"
+	// OpenAIProfessor used for setting OpenAI as the professor source.
+	OpenAIProfessor ProfessorType = "openai"
 )
 
-// TeacherConfig is the config for the Teacher feature.
-type TeacherConfig struct {
+// ProfessorConfig is the config for the Professor feature.
+type ProfessorConfig struct {
 	Enabled bool
-	Type    TeacherType
+	Type    ProfessorType
 	OpenAI  OpenAIConfig
 }
 
-// OpenAIConfig holds the configuration for setting the OpenAI teacher source.
+// OpenAIConfig holds the configuration for setting the OpenAI professor source.
 type OpenAIConfig struct {
 	ApiKey       string
 	CustomPrompt string
@@ -29,9 +29,9 @@ type OpenAIConfig struct {
 	Model        string
 }
 
-func (a *App) loadTeacher() error {
-	cfg := TeacherConfig{}
-	if str, ok := os.LookupEnv("TEACHER_ENABLED"); ok {
+func (a *App) loadProfessor() error {
+	cfg := ProfessorConfig{}
+	if str, ok := os.LookupEnv("PROFE_ENABLED"); ok {
 		val, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
@@ -39,37 +39,37 @@ func (a *App) loadTeacher() error {
 		cfg.Enabled = val
 	}
 
-	if str, ok := os.LookupEnv("TEACHER_TYPE"); ok {
-		val, err := toTeacherType(str)
+	if str, ok := os.LookupEnv("PROFE_TYPE"); ok {
+		val, err := toProfessorType(str)
 		if err != nil {
 			return err
 		}
 		cfg.Type = val
 	} else {
-		return errors.New("teacher type not set")
+		return errors.New("professor type not set")
 	}
 
-	if cfg.Type == OpenAITeacher {
+	if cfg.Type == OpenAIProfessor {
 		err := cfg.loadOpenAIConfig()
 		if err != nil {
 			return err
 		}
 	}
 
-	a.Teacher = cfg
+	a.Professor = cfg
 	return nil
 }
 
-func toTeacherType(str string) (TeacherType, error) {
+func toProfessorType(str string) (ProfessorType, error) {
 	switch str {
 	case "openai":
-		return OpenAITeacher, nil
+		return OpenAIProfessor, nil
 	default:
-		return "", errors.New("invalid teacher type")
+		return "", errors.New("invalid professor type")
 	}
 }
 
-func (tcfg *TeacherConfig) loadOpenAIConfig() error {
+func (tcfg *ProfessorConfig) loadOpenAIConfig() error {
 	cfg := OpenAIConfig{}
 
 	if str, ok := os.LookupEnv("OPENAI_KEY"); ok {

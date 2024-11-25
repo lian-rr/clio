@@ -2,8 +2,8 @@ package view
 
 type OptFunc func(main *Main)
 
-func WithTeacher(teacher teacher) OptFunc {
+func WithProfessor(professor professor) OptFunc {
 	return func(main *Main) {
-		main.teacher = teacher
+		main.professor = professor
 	}
 }

@@ -11,8 +11,8 @@ import (
 
 // App holds the application configuration
 type App struct {
-	BasePath string
-	Teacher  TeacherConfig
+	BasePath  string
+	Professor ProfessorConfig
 }
 
 // ErrInvalidDir indicates that the root directory for the store is not valid.
@@ -38,8 +38,8 @@ func New(ctx context.Context, path string, logger *slog.Logger) (App, error) {
 		BasePath: path,
 	}
 
-	if err := app.loadTeacher(); err != nil {
-		logger.Error("error loading teacher config", slog.Any("error", err))
+	if err := app.loadProfessor(); err != nil {
+		logger.Error("error loading professor config", slog.Any("error", err))
 	}
 
 	logger.Info("application setup completed", slog.String("path", path))

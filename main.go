@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/command/professor"
+	"github.com/lian-rr/clio/command/professor/openai"
 	"github.com/lian-rr/clio/command/store"
-	"github.com/lian-rr/clio/command/teacher"
-	"github.com/lian-rr/clio/command/teacher/openai"
 	"github.com/lian-rr/clio/config"
 	"github.com/lian-rr/clio/tui"
 )
@@ -68,16 +68,16 @@ func run() error {
 		return err
 	}
 
-	var teach *teacher.Teacher
-	if tch, ok := newTeacher(cfg.Teacher, logger); ok {
-		teach = &tch
+	var profe *professor.Professor
+	if prf, ok := newProfessor(cfg.Professor, logger); ok {
+		profe = &prf
 	}
 
-	if teach != nil {
-		logger.Info("teacher loaded successfully", slog.String("teacher type", string(cfg.Teacher.Type)))
+	if profe != nil {
+		logger.Info("professor loaded successfully", slog.String("professor type", string(cfg.Professor.Type)))
 	}
 
-	ui, err := tui.New(ctx, &manager, logger, teach)
+	ui, err := tui.New(ctx, &manager, logger, profe)
 	if err != nil {
 		return err
 	}
@@ -108,12 +108,12 @@ func initLogger() (logger *slog.Logger, close func() error, err error) {
 	return logger, file.Close, nil
 }
 
-func newTeacher(cfg config.TeacherConfig, logger *slog.Logger) (teacher.Teacher, bool) {
+func newProfessor(cfg config.ProfessorConfig, logger *slog.Logger) (professor.Professor, bool) {
 	if !cfg.Enabled {
-		return teacher.Teacher{}, false
+		return professor.Professor{}, false
 	}
 
-	var source teacher.Source
+	var source professor.Source
 	switch cfg.Type {
 	default:
 		opts := make([]openai.OptFunc, 0)
@@ -130,5 +130,5 @@ func newTeacher(cfg config.TeacherConfig, logger *slog.Logger) (teacher.Teacher,
 		source = openai.New(logger, cfg.OpenAI.ApiKey, opts...)
 	}
 
-	return teacher.New(source, logger), true
+	return professor.New(source, logger), true
 }
