@@ -1,6 +1,7 @@
 package view
 
 import (
+	"context"
 	"log/slog"
 	"reflect"
 	"time"
@@ -297,9 +298,17 @@ func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Main) fetchExplanation(cmd command.Command) {
-	time.Sleep(time.Second * 2)
+	ctx, cancel := context.WithTimeout(m.ctx, time.Second*60)
+	defer cancel()
+
+	explanation, err := m.teacher.Explain(ctx, cmd)
+	if err != nil {
+		m.logger.Error("error getting command explanation", slog.Any("command", "cmd"), slog.Any("error", err))
+		return
+	}
+
 	msgs.PublishAsyncMsg(
 		m.activityChan,
-		msgs.HandleSetExplanationMsg(content),
+		msgs.HandleSetExplanationMsg(explanation),
 	)
 }

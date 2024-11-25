@@ -115,7 +115,6 @@ func newTeacher(cfg config.TeacherConfig, logger *slog.Logger) (teacher.Teacher,
 
 	var source teacher.Source
 	switch cfg.Type {
-	case config.OpenAITeacher:
 	default:
 		opts := make([]openai.OptFunc, 0)
 		if cfg.OpenAI.Url != "" {

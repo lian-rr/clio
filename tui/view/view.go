@@ -48,7 +48,9 @@ type Main struct {
 	Output string
 }
 
-type teacher interface{}
+type teacher interface {
+	Explain(ctx context.Context, cmd command.Command) (string, error)
+}
 
 // New returns a new main view.
 func New(ctx context.Context, manager manager, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
