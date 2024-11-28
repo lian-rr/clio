@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,10 +17,7 @@ import (
 	"github.com/lian-rr/clio/tui"
 )
 
-const (
-	debugLogger  = "CLIO_DEBUG"
-	storePathEnv = "CLIO_STORE_PATH"
-)
+const configPathEnv = "CLIO_CONFIG_PATH"
 
 func main() {
 	// exit once
@@ -31,12 +30,24 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	var storePath string
-	if path, ok := os.LookupEnv(storePathEnv); ok {
-		storePath = path
+	var configPath string
+	if path, ok := os.LookupEnv(configPathEnv); ok {
+		configPath = path
 	}
 
-	logger, cancel, err := initLogger()
+	cfg, err := config.New(configPath)
+	if err != nil {
+		if !errors.Is(err, config.ErrNoConfigFound) {
+			return err
+		}
+
+		cfg, err = config.NewDefault()
+		if err != nil {
+			return fmt.Errorf("error loading default config: %v", err)
+		}
+	}
+
+	logger, cancel, err := initLogger(cfg.Debug)
 	if err != nil {
 		return err
 	}
@@ -44,12 +55,9 @@ func run() error {
 		_ = cancel()
 	}()
 
-	cfg, err := config.New(ctx, storePath, logger)
-	if err != nil {
-		return err
-	}
+	logger.Info("config setup done", slog.Any("config", cfg), slog.String("path", cfg.GetPath()))
 
-	sqlStore, err := sql.NewSql(logger, sql.WithSqliteDriver(ctx, cfg.BasePath))
+	sqlStore, err := sql.NewSql(logger, sql.WithSqliteDriver(ctx, cfg.GetPath()))
 	if err != nil {
 		slog.Error("error initializing the local store", slog.Any("error", err))
 		return err
@@ -89,9 +97,9 @@ func run() error {
 	return nil
 }
 
-func initLogger() (logger *slog.Logger, close func() error, err error) {
+func initLogger(debug bool) (logger *slog.Logger, close func() error, err error) {
 	logLevel := slog.LevelInfo
-	if _, ok := os.LookupEnv(debugLogger); ok {
+	if debug {
 		logLevel = slog.LevelDebug
 	}
 
