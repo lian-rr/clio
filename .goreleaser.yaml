@@ -1,97 +1,67 @@
 project_name: clio
-
-env:
-- CGO_ENABLED=1
-
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
 before:
   hooks:
-  - go mod tidy
-
+    # You may remove this if you don't use go modules.
+    - go mod tidy
 builds:
-  # Darwin builds
-  - id: clio-darwin-amd64
-    binary: clio
-    goarch:
-      - amd64
+  - id: goreleaser-zig-cross-compilation-linux-macos
     goos:
-      - darwin
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
-    flags:
-      - -trimpath
-      - -tags=fts5
-
-  - id: clio-darwin-arm64
-    binary: clio
+    - darwin
     goarch:
-      - arm64
-    goos:
-      - darwin
-    env:
-      - CC=oa64-clang
-      - CXX=oa64-clang++
-    flags:
-      - -trimpath
-
-  # Linux builds
-  - id: clio-linux-amd64
-    binary: clio
-    env:
-      - CC=x86_64-linux-gnu-gcc
-      - CXX=x86_64-linux-gnu-g++
-    goarch:
-      - amd64
-    goos:
-      - linux
-    flags:
-      - -trimpath
+    - amd64
+    - arm64
     ldflags:
-      - -extldflags "-lc -lrt -lpthread --static"
-
-  - id: clio-linux-arm64
-    binary: clio
-    goarch:
-      - arm64
-    goos:
-      - linux
-    env:
-      - CC=aarch64-linux-gnu-gcc
-      - CXX=aarch64-linux-gnu-g++
+    - -s -w
     flags:
-      - -trimpath
+    - -trimpath
+    env:
+    - CGO_ENABLED=1
+    - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=zig c -target x86_64-macos-none -F{{ .Env.SDK_PATH }}/System/Library/Frameworks{{- end }}
+          {{- if eq .Arch "arm64"}}CC=zig c -target aarch64-macos-none -F{{ .Env.SDK_PATH }}/System/Library/Frameworks{{- end }}
+        {{- end }}
+    - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=zig c++ -target x86_64-macos-none -F{{ .Env.SDK_PATH }}/System/Library/Frameworks{{- end }}
+          {{- if eq .Arch "arm64"}}CC=zig c++ -target aarch64-macos-none -F{{ .Env.SDK_PATH }}/System/Library/Frameworks{{- end }}
+        {{- end }}
+  
+  - id: goreleaser-zig-cross-compilation-linux
+    goos:
+    - linux
+    goarch:
+    - amd64
+    - arm64
     ldflags:
-      - -extldflags "-lc -lrt -lpthread --static"
+    - -s -w
+    flags:
+    - -trimpath
+    env:
+    - CGO_ENABLED=1
+    - >-
+        {{- if eq .Os "linux" }}
+          {{- if eq .Arch "amd64" }}CC=zig c -target x86_64-linux-musl{{- end }}
+          {{- if eq .Arch "arm64"}}CC=zig c -target aarch64-linux-musl{{- end }}
+        {{- end }}
+    - >-
+        {{- if eq .Os "linux" }}
+          {{- if eq .Arch "amd64" }}CC=zig c++ -target x86_64-linux-musl{{- end }}
+          {{- if eq .Arch "arm64"}}CC=zig c++ -target aarch64-linux-musl{{- end }}
+        {{- end }}
 
-universal_binaries:
-  - id: clio-darwin-universal
-    ids:
-      - clio-darwin-amd64
-      - clio-darwin-arm64
-    replace: true
-    name_template: "clio"
 archives:
-  - id: w/version
-    builds:
-      - clio-darwin-universal
-      - clio-linux-amd64
-      - clio-linux-arm64
-    name_template: "clio_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    wrap_in_directory: false
-    format: zip
-    files:
-      - none*
-
-  - id: wo/version
-    builds:
-      - clio-darwin-universal
-      - clio-linux-amd64
-      - clio-linux-arm64
-    name_template: "clio_{{ .Os }}_{{ .Arch }}"
-    wrap_in_directory: false
-    format: zip
-    files:
-      - none*
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
 
 checksum:
   name_template: 'checksums.txt'
@@ -101,6 +71,12 @@ snapshot:
 
 changelog:
   sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
 
-release:
-  draft: true
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
