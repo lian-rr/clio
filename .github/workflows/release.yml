@@ -3,16 +3,12 @@ name: Build release artifacts and draft release
 on:
   push:
     tags:
-      - "*.*.*"
+      - "v*.*.*"
 
 jobs:
-  draft-release:
+  linux-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Release
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: mlugg/setup-zig@v1
+
