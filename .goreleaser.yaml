@@ -1,0 +1,106 @@
+project_name: clio
+
+env:
+- CGO_ENABLED=1
+
+before:
+  hooks:
+  - go mod tidy
+
+builds:
+  # Darwin builds
+  - id: clio-darwin-amd64
+    binary: clio
+    goarch:
+      - amd64
+    goos:
+      - darwin
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    flags:
+      - -trimpath
+      - -tags=fts5
+
+  - id: clio-darwin-arm64
+    binary: clio
+    goarch:
+      - arm64
+    goos:
+      - darwin
+    env:
+      - CC=oa64-clang
+      - CXX=oa64-clang++
+    flags:
+      - -trimpath
+
+  # Linux builds
+  - id: clio-linux-amd64
+    binary: clio
+    env:
+      - CC=x86_64-linux-gnu-gcc
+      - CXX=x86_64-linux-gnu-g++
+    goarch:
+      - amd64
+    goos:
+      - linux
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-lc -lrt -lpthread --static"
+
+  - id: clio-linux-arm64
+    binary: clio
+    goarch:
+      - arm64
+    goos:
+      - linux
+    env:
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-lc -lrt -lpthread --static"
+
+universal_binaries:
+  - id: clio-darwin-universal
+    ids:
+      - clio-darwin-amd64
+      - clio-darwin-arm64
+    replace: true
+    name_template: "clio"
+archives:
+  - id: w/version
+    builds:
+      - clio-darwin-universal
+      - clio-linux-amd64
+      - clio-linux-arm64
+    name_template: "clio_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: false
+    format: zip
+    files:
+      - none*
+
+  - id: wo/version
+    builds:
+      - clio-darwin-universal
+      - clio-linux-amd64
+      - clio-linux-arm64
+    name_template: "clio_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: false
+    format: zip
+    files:
+      - none*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+
+release:
+  draft: true
