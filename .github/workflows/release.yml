@@ -1,12 +1,9 @@
-name: Build artifacts and draft release
+name: Draft release
 
 on:
   push:
     tags:
-      - "v*.*.*"
-
-permissions:
-  contents: write
+      - "v*[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
   build-linux-binary:
@@ -19,12 +16,15 @@ jobs:
           go-version: '1.23.x'
           cache-dependency-path: subdir/go.sum
       - uses: mlugg/setup-zig@v1
-      - name: Go build x86
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc -target x86_64-linux-musl" CXX="zig c++ -target x86_64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-x86_64-musl .
-      - name: Go build arm static
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-musl .
-      - name: Go build arm dynamic
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-gnuc .
+      - name: Go build x86_64 musl
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc -target x86_64-linux-musl" CXX="zig c++ -target x86_64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-x86_64-unknown-linux-musl .
+      - name: Go build x86_64 gnu
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc -target x86_64-linux-gnu" CXX="zig c++ -target x86_64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-x86_64-unknown-linux-gnu .
+      - name: Go build aarch64 musl
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-aarch64-unknown-linux-musl .
+      - name: Go build aarch64 gnu
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-aarch64-unknown-linux-gnu .
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -41,9 +41,9 @@ jobs:
           go-version: '1.23.x'
           cache-dependency-path: subdir/go.sum
       - name: Build
-        run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-x86_64 .
-      - name: Build ARM
-        run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-aarch64 .
+        run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-x86_64-apple-darwin .
+      - name: Build aarch64
+        run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-aarch64-apple-darwin .
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -51,29 +51,54 @@ jobs:
           name: clio-macos
           path: dist/clio*
 
-  draft-release:
-    needs: [build-linux-binary, build-macos-binary]
+  build-installer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Make directories
-        run: |
-          mkdir -p ./release
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache-dependency-path: subdir/go.sum
+      - name: Build installer
+        run: go run ./tools/install/install.go --path ./tools/install/template/clio-installer.sh.tmpl --version ${{ github.ref_name }}
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: clio-installer
+          path: clio*
+
+
+  draft-release:
+    needs: [build-linux-binary, build-macos-binary, build-installer]
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Download linux binaries
         uses: actions/download-artifact@v4
         with:
           name: clio-linux
-          path: ./release
       - name: Download macos binaries
         uses: actions/download-artifact@v4
         with:
           name: clio-macos
-          path: ./release
       - name: Generate checksum
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            ./release/clio-*
+            ./clio-*
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            ./clio-*
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: clio-installer
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -82,5 +107,11 @@ jobs:
           make_latest: true
           files: |
             checksum.txt
-            ./release/clio-*
+            ./clio-*
+          body: |
+            # Install CLIo ${{ github.ref_name }}
+            ## Install prebuilt binaries via shell script
+            ```sh
+            curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/download/${{ github.ref_name }}/clio-installer.sh | sh
+            ```
           token: ${{ secrets.GITHUB_TOKEN }}
