@@ -24,6 +24,7 @@ jobs:
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-aarch64-unknown-linux-musl .
       - name: Go build aarch64 gnu
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-aarch64-unknown-linux-gnu .
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -50,8 +51,26 @@ jobs:
           name: clio-macos
           path: dist/clio*
 
+  build-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache-dependency-path: subdir/go.sum
+      - name: Build installer
+        run: go run ./tools/install/install.go --path ./tools/install/template/clio-installer.sh.tmpl --version ${{ github.ref_name }}
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: clio-installer
+          path: clio*
+
+
   draft-release:
-    needs: [build-linux-binary, build-macos-binary]
+    needs: [build-linux-binary, build-macos-binary, build-installer]
     permissions:
       contents: write
       id-token: write
@@ -76,6 +95,10 @@ jobs:
         with:
           subject-path: |
             ./clio-*
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: clio-installer
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
