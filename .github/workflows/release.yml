@@ -6,7 +6,7 @@ on:
     #   - "v*.*.*"
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,8 +23,18 @@ jobs:
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-gnuc .
       - name: list
         run: ls -lah dist
-      - name: Go build darwin x86
-        run: CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 CC="zig cc -target x86_64-macos" CXX="zig c++ -target x86_64-macos" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-darwin-x86_64 .
-      - name: Go build darwin arm 
-        run: CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 CC="zig cc -target aarch64-macos" CXX="zig c++ -target aarch64-macos" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64 .
 
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Build
+        run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-x86_64 .
+      - name: Build ARM
+        run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-aarch64 .
+      - name: list
+        run: ls -lah dist
