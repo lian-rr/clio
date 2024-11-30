@@ -108,4 +108,10 @@ jobs:
           files: |
             checksum.txt
             ./clio-*
+          body: |
+            # Install CLIo ${{ github.ref_name }}
+            ## Install prebuilt binaries via shell script
+            ```sh
+            curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/download/${{ github.ref_name }}/clio-installer.sh | sh
+            ```
           token: ${{ secrets.GITHUB_TOKEN }}
