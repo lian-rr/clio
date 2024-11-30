@@ -2,26 +2,21 @@ name: Build release artifacts and draft release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    # tags:
+    #   - "v*.*.*"
 
 jobs:
   linux-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: Install cross-compiler for linux/arm64
-        run: sudo apt-get -y install gcc-aarch64-linux-gnu
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: "~> v2"
-          args: release --clean --config .goreleaser_linux.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: mlugg/setup-zig@v1
+      - name: Go build
+        run: CGO_ENABLED=1 CC="zig cc" CXX="zig cc" go build --tags "fts5" -trimpath -ldflags "-s -w" ./main.go
+      - name: list
+        run: ls -lah
 
