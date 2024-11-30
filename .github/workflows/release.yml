@@ -3,7 +3,7 @@ name: Build artifacts and draft release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v*[0-9]+.[0-9]+.[0-9]+*"
 
 permissions:
   contents: write
@@ -56,24 +56,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Make directories
-        run: |
-          mkdir -p ./release
       - name: Download linux binaries
         uses: actions/download-artifact@v4
         with:
           name: clio-linux
-          path: ./release
       - name: Download macos binaries
         uses: actions/download-artifact@v4
         with:
           name: clio-macos
-          path: ./release
       - name: Generate checksum
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            ./release/clio-*
+            ./clio-*
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -82,5 +77,5 @@ jobs:
           make_latest: true
           files: |
             checksum.txt
-            ./release/clio-*
+            ./clio-*
           token: ${{ secrets.GITHUB_TOKEN }}
