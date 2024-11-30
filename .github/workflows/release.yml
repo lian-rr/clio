@@ -22,11 +22,6 @@ jobs:
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-musl .
       - name: Go build arm dynamic
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-gnuc .
-      - name: Generate checksum
-        uses: jmgilman/actions-generate-checksum@v1
-        with:
-          patterns: |
-            dist/clio-*
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -46,11 +41,6 @@ jobs:
         run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-x86_64 .
       - name: Build ARM
         run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-aarch64 .
-      - name: Generate checksum
-        uses: jmgilman/actions-generate-checksum@v1
-        with:
-          patterns: |
-            dist/clio-*
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -77,16 +67,23 @@ jobs:
         with:
           name: clio-macos
           path: ./clio-build/macos
-      - name: Merge checksum file
-        run: |
-          cd ./clio-build
-          cat ./darwin/clio*checksums.txt >> checksums.txt
-          rm ./linux/clio*checksums.txt
-          cat ./macos/clio*checksums.txt >> checksums.txt
-          rm ./macos/clio*checksums.txt
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            ./clio-build/macos/clio-*
+            ./clio-build/linux/clio-*
+      # - name: Merge checksum file
+      #   run: |
+      #     cd ./clio-build
+      #     cat ./macos/clio*checksums.txt >> checksums.txt
+      #     rm ./linux/clio*checksums.txt
+      #     cat ./macos/clio*checksums.txt >> checksums.txt
+      #     rm ./macos/clio*checksums.txt
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
+            checksum.txt
             .clio-build/*.**
