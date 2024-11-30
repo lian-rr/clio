@@ -22,9 +22,9 @@ jobs:
       - name: Go build x86
         run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc -target x86_64-linux-musl" CXX="zig c++ -target x86_64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-x86_64-musl .
       - name: Go build arm static
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-musl .
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-aarch64-musl .
       - name: Go build arm dynamic
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-arm64-gnuc .
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-aarch64-gnuc .
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +68,10 @@ jobs:
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
+            ./clio-*
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
             ./clio-*
       - name: Release
         uses: softprops/action-gh-release@v2
