@@ -81,4 +81,4 @@ jobs:
             checksum.txt
             ./clio-build/macos/clio-*
             ./clio-build/linux/clio-*
-          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
