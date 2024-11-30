@@ -73,18 +73,11 @@ jobs:
           patterns: |
             ./clio-build/macos/clio-*
             ./clio-build/linux/clio-*
-      # - name: Merge checksum file
-      #   run: |
-      #     cd ./clio-build
-      #     cat ./macos/clio*checksums.txt >> checksums.txt
-      #     rm ./linux/clio*checksums.txt
-      #     cat ./macos/clio*checksums.txt >> checksums.txt
-      #     rm ./macos/clio*checksums.txt
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
             checksum.txt
-            .clio-build/*.**
+            ./clio-build/*.**
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
