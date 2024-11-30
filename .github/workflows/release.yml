@@ -87,3 +87,4 @@ jobs:
           files: |
             checksum.txt
             .clio-build/*.**
+          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
