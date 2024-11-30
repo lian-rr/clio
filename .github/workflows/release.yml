@@ -1,9 +1,12 @@
-name: Build release artifacts and draft release
+name: Build artifacts and draft release
 
 on:
   push:
     # tags:
     #   - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
   build-linux-binary:
