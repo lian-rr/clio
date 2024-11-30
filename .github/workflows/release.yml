@@ -6,8 +6,12 @@ on:
     #   - "v*.*.*"
 
 jobs:
-  linux-build:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin]
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -16,8 +20,6 @@ jobs:
           go-version: stable
       - uses: mlugg/setup-zig@v1
       - name: Go build
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc" CXX="zig cc" go build --tags "fts5" -trimpath -ldflags "-s -w" .
+        run: CGO_ENABLED=1 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} CC="zig cc" CXX="zig cc" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-${{ matrix.os }}-${{ matrix.arch }} .
       - name: list
-        run: ls -lah
-      - name: ldd
-        run: ldd clio
+        run: ls -lah dist
