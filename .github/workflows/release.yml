@@ -5,9 +5,6 @@ on:
     tags:
       - "v*[0-9]+.[0-9]+.[0-9]+*"
 
-permissions:
-  contents: write
-
 jobs:
   build-linux-binary:
     runs-on: ubuntu-latest
@@ -19,12 +16,14 @@ jobs:
           go-version: '1.23.x'
           cache-dependency-path: subdir/go.sum
       - uses: mlugg/setup-zig@v1
-      - name: Go build x86
+      - name: Go build x86_64 musl
         run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc -target x86_64-linux-musl" CXX="zig c++ -target x86_64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-x86_64-musl .
-      - name: Go build arm static
+      - name: Go build x86_64 gnu
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target x86_64-linux-gnu" CXX="zig c++ -target x86_64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-x86_64-gnu .
+      - name: Go build aarch64 musl
         run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-musl" CXX="zig c++ -target aarch64-linux-musl" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-aarch64-musl .
-      - name: Go build arm dynamic
-        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-aarch64-gnuc .
+      - name: Go build aarch64 gnu
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" CXX="zig c++ -target aarch64-linux-gnu" go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-linux-aarch64-gnu .
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -42,7 +41,7 @@ jobs:
           cache-dependency-path: subdir/go.sum
       - name: Build
         run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-x86_64 .
-      - name: Build ARM
+      - name: Build aarch64
         run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build --tags "fts5" -trimpath -ldflags "-s -w" -o dist/clio-macos-aarch64 .
 
       - name: Upload
@@ -53,6 +52,10 @@ jobs:
 
   draft-release:
     needs: [build-linux-binary, build-macos-binary]
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
