@@ -16,7 +16,8 @@ jobs:
           go-version: stable
       - uses: mlugg/setup-zig@v1
       - name: Go build
-        run: CGO_ENABLED=1 CC="zig cc" CXX="zig cc" go build --tags "fts5" -trimpath -ldflags "-s -w" ./main.go
+        run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC="zig cc" CXX="zig cc" go build --tags "fts5" -trimpath -ldflags "-s -w" .
       - name: list
         run: ls -lah
-
+      - name: ldd
+        run: ldd clio
