@@ -79,5 +79,6 @@ jobs:
           draft: true
           files: |
             checksum.txt
-            ./clio-build/*/*.**
+            ./clio-build/macos/clio-*
+            ./clio-build/linux/clio-*
           token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
