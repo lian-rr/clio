@@ -93,17 +93,21 @@ func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
 			}
 			return *p, msgs.HandleExecuteMsg(out)
 		default:
+			if len(p.paramInputs) > 0 {
+				var input textinput.Model
+				param := p.orderedParams[p.selectedInput]
+				input, cmd = p.paramInputs[param].Update(msg)
+				p.paramInputs[param] = &input
+			}
+		}
+	default:
+		// handling blinking mostly
+		if len(p.paramInputs) > 0 {
 			var input textinput.Model
 			param := p.orderedParams[p.selectedInput]
 			input, cmd = p.paramInputs[param].Update(msg)
 			p.paramInputs[param] = &input
 		}
-	default:
-		// handling blinking mostly
-		var input textinput.Model
-		param := p.orderedParams[p.selectedInput]
-		input, cmd = p.paramInputs[param].Update(msg)
-		p.paramInputs[param] = &input
 	}
 	return *p, cmd
 }
