@@ -24,8 +24,6 @@ PRINT_VERBOSE=${INSTALLER_PRINT_VERBOSE:-0}
 PRINT_QUIET=${INSTALLER_PRINT_QUIET:-0}
 NO_MODIFY_PATH=${INSTALLER_NO_MODIFY_PATH:-0}
 
-RECEIPT_HOME="${HOME}/.config/clio"
-
 # glibc provided by our Ubuntu 20.04 runners;
 # in the future, we should actually record which glibc was on the runner,
 # and inject that into the script.
@@ -183,11 +181,6 @@ download_binary_and_run_installer() {
 
     ignore rm -rf "$_dir"
 
-    # Install the install receipt
-    mkdir -p "$RECEIPT_HOME" || {
-        err "unable to create receipt directory at $RECEIPT_HOME"
-    }
-    echo "$RECEIPT" > "$RECEIPT_HOME/$APP_NAME-receipt.json"
     # shellcheck disable=SC2320
     local _retval=$?
 
