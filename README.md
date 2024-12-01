@@ -1,4 +1,4 @@
-# CLIo 
+# CLIo
 **CLIo** is your terminal's ultimate companion, 
 user-friendly TUI (Text User Interface) application designed to help you explore, use, 
 and understand the terminal commands effortlessly.
@@ -10,6 +10,7 @@ CLIo offers an intuitive and powerful way to master your shell.
 
 ## Installation
 ### Install latest binary
+The recommended approach is to use the installation script, which automatically handles the installation of **CLIo** including the requirements for your environment.
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/latest/download/clio-installer.sh | sh
 ```
@@ -38,17 +39,16 @@ go build --tags "fts5" .
 - 🔍 **Search and Filter**: Quickly find commands by name, keyword, or functionality.
 
 ### Roadmap
-- Export/Import command libray.
+- Export/Import command library.
 - History of previous uses.
 - Configure custom Explanation engines (e.g Ollama)
 - Customizable Themes
 
 ## Configuration
-In case you want to customized some of **CLIo** options or enable some features, 
-you can provide the necessary configuration on the config file. 
+In case you want to customize some of **CLIo** options 
+you can provide the necessary configuration in the config file. 
 
-**CLIo** checks for the configuration on the `$HOME/.config/clio/clio.toml` file. 
-To use a different config file, set the `$CLIO_CONFIG_PATH`.
+**CLIo** checks for the configuration in the `$HOME/.config/clio/clio.toml` file.
 
 ### Example config
 ```toml
@@ -75,3 +75,6 @@ url = ""
 # OpenAI model.
 model = ""
 ```
+
+## Discloure
+Until the version `v.1.0.0`, bugs are expected and backwards compatibility not promised.
