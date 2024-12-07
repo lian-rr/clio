@@ -12,8 +12,6 @@ type Dialog struct {
 	acceptButtonLabel string
 	cancelButtonLabel string
 
-	width       int
-	height      int
 	selectedBtn int
 
 	keys  KeyMap
@@ -84,14 +82,13 @@ func (d Dialog) View() string {
 	)
 
 	content := lipgloss.NewStyle().
-		Width(50).
 		AlignHorizontal(lipgloss.Center).
 		Render(d.style.Box.Render(ui))
 
 	return content
 }
 
-// Init
+// Init dialog
 func (d Dialog) Init() tea.Cmd {
 	return sendMsg(InitMsg{})
 }
