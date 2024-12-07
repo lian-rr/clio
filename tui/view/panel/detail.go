@@ -5,10 +5,12 @@ import (
 	"log/slog"
 
 	"github.com/alecthomas/chroma/v2/quick"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/components/dialog"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -21,12 +23,14 @@ const (
 
 // DetailsPanel handles the panel for showing the command details.
 type DetailsPanel struct {
-	infoTable   *table.Table
-	paramsTable *table.Table
-	logger      *slog.Logger
+	infoTable    *table.Table
+	paramsTable  *table.Table
+	confirmation dialog.Dialog
+	logger       *slog.Logger
 
-	width  int
-	height int
+	width   int
+	height  int
+	confirm bool
 
 	// styles
 	titleStyle   lipgloss.Style
@@ -53,14 +57,22 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
 	return DetailsPanel{
-		logger:      logger,
-		infoTable:   infoTable,
-		paramsTable: params,
-		titleStyle:  style.Title,
+		logger:       logger,
+		infoTable:    infoTable,
+		confirmation: dialog.New("Are you sure you want to delete the command?"),
+		paramsTable:  params,
+		titleStyle:   style.Title,
 		contentStyle: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Padding(2, 8),
 	}
+}
+
+// Update handles the msgs.
+func (p *DetailsPanel) Update(msg tea.Msg) (DetailsPanel, tea.Cmd) {
+	var cmd tea.Cmd
+	p.confirmation, cmd = p.confirmation.Update(msg)
+	return *p, cmd
 }
 
 // SetCommand sets the command to view in the panel.
@@ -86,9 +98,15 @@ func (p *DetailsPanel) SetCommand(cmd command.Command) error {
 	return nil
 }
 
+// View renders the DetailsPanel view.
 func (p *DetailsPanel) View() string {
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
+
+	var confirmation string
+	if p.confirm {
+		confirmation = p.confirmation.View()
+	}
 
 	return style.Border.Render(
 		p.contentStyle.
@@ -97,17 +115,31 @@ func (p *DetailsPanel) View() string {
 			Render(
 				lipgloss.JoinVertical(
 					lipgloss.Center,
-					p.titleStyle.Render("Compose"),
+					p.titleStyle.Render("Details"),
 					p.infoTable.Render(),
+					confirmation,
 					p.paramsTable.Render(),
 				),
 			))
 }
 
+// SetSize sets the details panel size
 func (p *DetailsPanel) SetSize(width, height int) {
 	p.titleStyle.Width(width)
 	p.width = width
 	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
 	p.paramsTable.Width(w)
+}
+
+// ToggleConfirmation toggles the confirmation mode
+func (p *DetailsPanel) ToggleConfirmation() tea.Cmd {
+	var cmd tea.Cmd
+	if !p.confirm {
+		cmd = p.confirmation.Init()
+	}
+	p.confirmation = p.confirmation.Reset()
+	p.confirm = !p.confirm
+
+	return cmd
 }

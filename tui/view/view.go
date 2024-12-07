@@ -38,8 +38,9 @@ type Main struct {
 	explainPanel  panel.ExplainPanel
 	help          help.Model
 
-	focus     focus
-	searching bool
+	focus        focus
+	searching    bool
+	confirmation bool
 
 	// styles
 	titleStyle lipgloss.Style

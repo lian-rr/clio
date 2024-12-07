@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/components/dialog"
 	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
@@ -43,14 +44,16 @@ type EditPanel struct {
 	// cache the params inputs
 	paramsContent map[string][2]*textinput.Model
 
-	infoTable   *table.Table
-	paramsTable *table.Table
-	logger      *slog.Logger
-	inputs      []*textinput.Model
+	infoTable    *table.Table
+	paramsTable  *table.Table
+	confirmation dialog.Dialog
+	logger       *slog.Logger
+	inputs       []*textinput.Model
 
 	width         int
 	height        int
 	selectedInput int
+	confirm       bool
 
 	// styles
 	titleStyle   lipgloss.Style
@@ -85,6 +88,7 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 	return EditPanel{
 		mode:          NewCommandMode,
 		infoTable:     infoTable,
+		confirmation:  dialog.New("Are you sure you want to edit the command?"),
 		paramsTable:   params,
 		inputs:        []*textinput.Model{&nameInput, &descInput, &cmdInput},
 		paramsContent: make(map[string][2]*textinput.Model),
@@ -108,6 +112,11 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if p.confirm {
+			p.confirmation, cmd = p.confirmation.Update(msg)
+			return *p, cmd
+		}
+
 		switch {
 		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
 			p.inputs[p.selectedInput].Blur()
@@ -119,20 +128,12 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 			p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
 			p.inputs[p.selectedInput].Focus()
 		case key.Matches(msg, ckey.DefaultMap.Enter):
-			if err := p.cmd.Build(); err != nil {
-				p.logger.Warn("error building param", slog.Any("error", err))
-				break
+			if p.mode == EditCommandMode {
+				p.confirm = true
+				p.confirmation = p.confirmation.Reset()
+				return *p, p.confirmation.Init()
 			}
-
-			p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
-			switch p.mode {
-			case NewCommandMode:
-				return *p, msgs.HandleNewCommandMsg(p.cmd)
-			case EditCommandMode:
-				return *p, msgs.HandleUpdateCommandMsg(p.cmd)
-			default:
-				p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
-			}
+			return *p, p.done()
 		default:
 			var input textinput.Model
 			input, cmd = p.inputs[p.selectedInput].Update(msg)
@@ -147,6 +148,10 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 				}
 			}
 		}
+	case dialog.AcceptMsg:
+		return *p, p.done()
+	case dialog.DiscardMsg:
+		p.confirm = false
 	default:
 		var input textinput.Model
 		input, cmd = p.inputs[p.selectedInput].Update(msg)
@@ -177,10 +182,14 @@ func (p *EditPanel) View() string {
 
 	p.paramsTable.Data(table.NewStringData(rows...))
 
+	var confirmation string
 	var title string
 	switch p.mode {
 	case EditCommandMode:
 		title = "Edit Command"
+		if p.confirm {
+			confirmation = p.confirmation.View()
+		}
 	default:
 		title = "New Command"
 	}
@@ -194,6 +203,7 @@ func (p *EditPanel) View() string {
 				lipgloss.Center,
 				p.titleStyle.Render(title),
 				p.infoTable.Render(),
+				confirmation,
 				sty.MarginLeft(1).Render(style.Label.Render("Parameters")),
 				sty.MarginLeft(2).Render(p.paramsTable.Render()),
 			),
@@ -285,4 +295,28 @@ func (p *EditPanel) refreshParamsInputs() {
 		}
 	}
 	p.inputs = inputs
+}
+
+func (p *EditPanel) Reset() {
+	p.selectedInput = nameInputPos
+	p.confirm = false
+	p.confirmation.Reset()
+}
+
+func (p *EditPanel) done() tea.Cmd {
+	if err := p.cmd.Build(); err != nil {
+		p.logger.Warn("error building param", slog.Any("error", err))
+		return nil
+	}
+
+	p.logger.Debug("Done editing/creating command", slog.Any("command", p.cmd))
+	switch p.mode {
+	case NewCommandMode:
+		return msgs.HandleNewCommandMsg(p.cmd)
+	case EditCommandMode:
+		return msgs.HandleUpdateCommandMsg(p.cmd)
+	default:
+		p.logger.Error("unknown mode found. discarding command", slog.Any("mode", p.mode))
+		return nil
+	}
 }
