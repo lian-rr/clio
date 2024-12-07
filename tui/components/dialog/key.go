@@ -22,3 +22,15 @@ var defaultKeyMap = KeyMap{
 		key.WithHelp("tab", "navigate"),
 	),
 }
+
+func (km KeyMap) shortHelp() []key.Binding {
+	return []key.Binding{
+		km.Accept,
+		km.Discard,
+		km.Navigate,
+	}
+}
+
+func (km KeyMap) fullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}

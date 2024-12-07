@@ -99,6 +99,16 @@ func (d Dialog) Reset() Dialog {
 	return d
 }
 
+// ShortHelp returns the short help for the key bindings
+func (d Dialog) ShortHelp() []key.Binding {
+	return d.keys.shortHelp()
+}
+
+// FullHelp returns the full help for the key bindings
+func (d Dialog) FullHelp() [][]key.Binding {
+	return d.keys.fullHelp()
+}
+
 type (
 	// InitMsg send when the confirmation panenl is opened
 	InitMsg struct{}
