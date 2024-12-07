@@ -13,6 +13,7 @@ import (
 
 	"github.com/lian-rr/clio/command"
 	"github.com/lian-rr/clio/command/manager"
+	"github.com/lian-rr/clio/tui/components/dialog"
 	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/panel"
 )
@@ -20,17 +21,31 @@ import (
 const minCharCount = 3
 
 func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
-	switch m.focus {
-	case searchFocus:
-		return m.handleSearchInput(msg)
-	case executeFocus:
-		return m.handleExecuteInput(msg)
-	case editFocus:
-		return m.handleEditInput(msg)
-	case explainFocus:
-		return m.handleExplainInput(msg)
+	handler := func(msg tea.Msg) tea.Cmd {
+		switch m.focus {
+		case searchFocus:
+			return m.handleSearchInput(msg)
+		case executeFocus:
+			return m.handleExecuteInput(msg)
+		case editFocus:
+			return m.handleEditInput(msg)
+		case explainFocus:
+			return m.handleExplainInput(msg)
+		default:
+			return m.handleNavigationInput(msg)
+		}
+	}
+	switch msg := msg.(type) {
+	case dialog.InitMsg:
+		m.confirmation = true
+		m.logger.Debug("dialog open", slog.Bool("confirmation", m.confirmation))
+		return handler(msg)
+	case dialog.AcceptMsg, dialog.DiscardMsg:
+		m.confirmation = false
+		m.logger.Debug("dialog closed", slog.Bool("confirmation", m.confirmation))
+		return handler(msg)
 	default:
-		return m.handleNavigationInput(msg)
+		return handler(msg)
 	}
 }
 
@@ -38,6 +53,11 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.confirmation {
+			m.detailPanel, cmd = m.detailPanel.Update(msg)
+			break
+		}
+
 		switch {
 		case key.Matches(msg, m.keys.Quit):
 			return tea.Quit
@@ -74,6 +94,8 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				}
 			})
 		case key.Matches(msg, m.keys.Edit):
+			m.editPanel.Reset()
+
 			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
 				break
@@ -117,14 +139,7 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				}
 			})
 		case key.Matches(msg, m.keys.Delete):
-			item, ok := m.explorerPanel.SelectedCommand()
-			if !ok {
-				break
-			}
-
-			if err := m.removeCommand(*item.Command); err != nil {
-				m.logger.Error("error removing command", slog.Any("command", *item.Command), slog.Any("error", err))
-			}
+			return m.detailPanel.ToggleConfirmation()
 		default:
 			m.explorerPanel, cmd = m.explorerPanel.Update(msg)
 			item, ok := m.explorerPanel.SelectedCommand()
@@ -148,6 +163,20 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				m.logger.Error("error setting detail view content", slog.Any("error", err))
 			}
 		}
+	// delete command confirmed
+	case dialog.AcceptMsg:
+		_ = m.detailPanel.ToggleConfirmation()
+
+		item, ok := m.explorerPanel.SelectedCommand()
+		if !ok {
+			break
+		}
+
+		if err := m.removeCommand(*item.Command); err != nil {
+			m.logger.Error("error removing command", slog.Any("command", *item.Command), slog.Any("error", err))
+		}
+	case dialog.DiscardMsg:
+		_ = m.detailPanel.ToggleConfirmation()
 	}
 
 	return cmd
@@ -184,6 +213,10 @@ func (m *Main) handleEditInput(msg tea.Msg) tea.Cmd {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.Back):
+			if m.confirmation {
+				break
+			}
+
 			return changeFocus(navigationFocus, func(m *Main) {
 				item, ok := m.explorerPanel.SelectedCommand()
 				if !ok {
@@ -193,13 +226,11 @@ func (m *Main) handleEditInput(msg tea.Msg) tea.Cmd {
 					m.logger.Error("error setting detail view content", slog.Any("error", err))
 				}
 			})
-		default:
-			m.editPanel, cmd = m.editPanel.Update(msg)
 		}
-	default:
-		// pass control for any other event
-		m.editPanel, cmd = m.editPanel.Update(msg)
 	}
+
+	// pass control for any other event
+	m.editPanel, cmd = m.editPanel.Update(msg)
 	return cmd
 }
 
