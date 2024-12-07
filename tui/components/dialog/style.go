@@ -15,12 +15,15 @@ var (
 
 	defaultStyles = StyleMap{
 		Button: defaultButton.
+			MarginLeft(1).
+			MarginRight(1).
 			Foreground(lipgloss.Color("#FFF7DB")).
 			Background(lipgloss.Color("#888B7E")),
 		ActiveButton: defaultButton.
+			MarginLeft(1).
+			MarginRight(1).
 			Foreground(lipgloss.Color("#FFF7DB")).
 			Background(lipgloss.Color("#F25D94")).
-			MarginRight(2).
 			Underline(true),
 		Box: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -29,6 +32,7 @@ var (
 			BorderTop(true).
 			BorderLeft(true).
 			BorderRight(true).
-			BorderBottom(true),
+			BorderBottom(true).
+			MarginBottom(2),
 	}
 )

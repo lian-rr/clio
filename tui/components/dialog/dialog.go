@@ -86,7 +86,7 @@ func (d Dialog) View() string {
 	content := lipgloss.NewStyle().
 		Width(50).
 		AlignHorizontal(lipgloss.Center).
-		Render(d.style.Box.Render(ui), "\n")
+		Render(d.style.Box.Render(ui))
 
 	return content
 }

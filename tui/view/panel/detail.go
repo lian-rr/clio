@@ -108,6 +108,7 @@ func (p *DetailsPanel) View() string {
 		confirmation = p.confirmation.View()
 	}
 
+	sty := lipgloss.NewStyle()
 	return style.Border.Render(
 		p.contentStyle.
 			Width(w).
@@ -118,6 +119,7 @@ func (p *DetailsPanel) View() string {
 					p.titleStyle.Render("Details"),
 					p.infoTable.Render(),
 					confirmation,
+					sty.MarginLeft(1).Render(style.Label.Render("Parameters")),
 					p.paramsTable.Render(),
 				),
 			))
