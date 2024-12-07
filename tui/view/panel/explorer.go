@@ -91,7 +91,7 @@ func (p *ExplorerPanel) Select(idx int) {
 // RefreshCommand refresh the item command of the selected Item.
 func (p *ExplorerPanel) RefreshCommand(cmd command.Command) {
 	idx := p.list.Index()
-	p.list.SetItem(idx, ExplorerItem{
+	p.list.SetItem(idx, &ExplorerItem{
 		title:   cmd.Name,
 		desc:    cmd.Description,
 		Command: &cmd,
