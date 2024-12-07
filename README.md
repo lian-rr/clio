@@ -42,7 +42,8 @@ go build --tags "fts5" .
 - Export/Import command library.
 - History of previous uses.
 - Configure custom Explanation engines (e.g Ollama)
-- Customizable Themes
+- Custom Themes
+- Custom Keymaps
 
 ## Configuration
 In case you want to customize some of **CLIo** options 
