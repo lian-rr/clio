@@ -21,8 +21,8 @@ const (
 	chromaStyle     = "catppuccin-frappe"
 )
 
-// DetailsPanel handles the panel for showing the command details.
-type DetailsPanel struct {
+// Details handles the panel for showing the command details.
+type Details struct {
 	infoTable    *table.Table
 	paramsTable  *table.Table
 	confirmation dialog.Dialog
@@ -37,8 +37,8 @@ type DetailsPanel struct {
 	contentStyle lipgloss.Style
 }
 
-// NewDetailsPanel returns a new DetailsPanel.
-func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
+// NewDetails returns a new DetailsPanel.
+func NewDetails(logger *slog.Logger) Details {
 	infoTable := table.New().
 		Border(lipgloss.HiddenBorder()).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -56,7 +56,7 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
-	return DetailsPanel{
+	return Details{
 		logger:       logger,
 		infoTable:    infoTable,
 		confirmation: dialog.New("Are you sure you want to delete the command?"),
@@ -69,14 +69,14 @@ func NewDetailsPanel(logger *slog.Logger) DetailsPanel {
 }
 
 // Update handles the msgs.
-func (p *DetailsPanel) Update(msg tea.Msg) (DetailsPanel, tea.Cmd) {
+func (p *Details) Update(msg tea.Msg) (Details, tea.Cmd) {
 	var cmd tea.Cmd
 	p.confirmation, cmd = p.confirmation.Update(msg)
 	return *p, cmd
 }
 
 // SetCommand sets the command to view in the panel.
-func (p *DetailsPanel) SetCommand(cmd command.Command) error {
+func (p *Details) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -99,7 +99,7 @@ func (p *DetailsPanel) SetCommand(cmd command.Command) error {
 }
 
 // View renders the DetailsPanel view.
-func (p *DetailsPanel) View() string {
+func (p *Details) View() string {
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
@@ -126,7 +126,7 @@ func (p *DetailsPanel) View() string {
 }
 
 // SetSize sets the details panel size
-func (p *DetailsPanel) SetSize(width, height int) {
+func (p *Details) SetSize(width, height int) {
 	p.titleStyle.Width(width)
 	p.width = width
 	p.height = height
@@ -135,7 +135,7 @@ func (p *DetailsPanel) SetSize(width, height int) {
 }
 
 // ToggleConfirmation toggles the confirmation mode
-func (p *DetailsPanel) ToggleConfirmation() tea.Cmd {
+func (p *Details) ToggleConfirmation() tea.Cmd {
 	var cmd tea.Cmd
 	if !p.confirm {
 		cmd = p.confirmation.Init()

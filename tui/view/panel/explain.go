@@ -18,8 +18,8 @@ import (
 	"github.com/lian-rr/clio/tui/view/util"
 )
 
-// ExplainPanel handles the panel for explaing the command
-type ExplainPanel struct {
+// Explain handles the panel for explaing the command
+type Explain struct {
 	logger  *slog.Logger
 	comand  string
 	content viewport.Model
@@ -33,7 +33,7 @@ type ExplainPanel struct {
 	titleStyle lipgloss.Style
 }
 
-func NewExplainPanel(logger *slog.Logger) ExplainPanel {
+func NewExplain(logger *slog.Logger) Explain {
 	vp := viewport.New(0, 0)
 	vp.Style = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -43,7 +43,7 @@ func NewExplainPanel(logger *slog.Logger) ExplainPanel {
 	s.Spinner = spinner.Points
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	return ExplainPanel{
+	return Explain{
 		logger:     logger,
 		content:    vp,
 		spinner:    s,
@@ -51,11 +51,11 @@ func NewExplainPanel(logger *slog.Logger) ExplainPanel {
 	}
 }
 
-func (p *ExplainPanel) Init() tea.Cmd {
+func (p *Explain) Init() tea.Cmd {
 	return p.spinner.Tick
 }
 
-func (p *ExplainPanel) SetCommand(cmd command.Command) error {
+func (p *Explain) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -69,7 +69,7 @@ func (p *ExplainPanel) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (p *ExplainPanel) SetExplanation(explanation string) error {
+func (p *Explain) SetExplanation(explanation string) error {
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithWordWrap(p.width),
 		glamour.WithStandardStyle(styles.DarkStyle),
@@ -88,7 +88,7 @@ func (p *ExplainPanel) SetExplanation(explanation string) error {
 	return nil
 }
 
-func (p *ExplainPanel) View() string {
+func (p *Explain) View() string {
 	sty := lipgloss.NewStyle()
 	cont := "Loading " + p.spinner.View()
 	if !p.loading {
@@ -110,7 +110,7 @@ func (p *ExplainPanel) View() string {
 		))
 }
 
-func (p *ExplainPanel) Update(msg tea.Msg) (ExplainPanel, tea.Cmd) {
+func (p *Explain) Update(msg tea.Msg) (Explain, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -123,7 +123,7 @@ func (p *ExplainPanel) Update(msg tea.Msg) (ExplainPanel, tea.Cmd) {
 	return *p, cmd
 }
 
-func (p *ExplainPanel) SetSize(width, height int) {
+func (p *Explain) SetSize(width, height int) {
 	p.titleStyle.Width(width)
 	p.width = width
 	p.height = height

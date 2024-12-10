@@ -30,12 +30,12 @@ type Main struct {
 	logger *slog.Logger
 
 	// views
-	searchPanel   panel.SearchView
-	explorerPanel panel.ExplorerPanel
-	detailPanel   panel.DetailsPanel
-	executePanel  panel.ExecutePanel
-	editPanel     panel.EditPanel
-	explainPanel  panel.ExplainPanel
+	searchPanel   panel.Search
+	explorerPanel panel.Explorer
+	detailPanel   panel.Details
+	executePanel  panel.Execute
+	editPanel     panel.Edit
+	explainPanel  panel.Explain
 	help          help.Model
 
 	focus        focus
@@ -61,12 +61,12 @@ func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...O
 		activityChan:      make(chan msgs.AsyncMsg),
 		titleStyle:        style.Title,
 		keys:              ckey.DefaultMap,
-		explorerPanel:     panel.NewExplorerPanel(),
-		searchPanel:       panel.NewSearchView(logger),
-		detailPanel:       panel.NewDetailsPanel(logger),
-		executePanel:      panel.NewExecutePanel(logger),
-		editPanel:         panel.NewEditPanel(logger),
-		explainPanel:      panel.NewExplainPanel(logger),
+		explorerPanel:     panel.NewExplorer(),
+		searchPanel:       panel.NewSearch(logger),
+		detailPanel:       panel.NewDetails(logger),
+		executePanel:      panel.NewExecute(logger),
+		editPanel:         panel.NewEdit(logger),
+		explainPanel:      panel.NewExplain(logger),
 		help:              help.New(),
 		focus:             navigationFocus,
 		logger:            logger,
@@ -128,6 +128,8 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Main) View() string {
+	help := m.help.View(m.keys)
+
 	return style.Document.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
@@ -149,7 +151,7 @@ func (m *Main) View() string {
 						m.getPanelView(),
 					)),
 			),
-			style.Help.Render(m.help.View(m.keys)),
+			style.Help.Render(help),
 		),
 	)
 }

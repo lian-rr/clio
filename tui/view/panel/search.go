@@ -10,13 +10,13 @@ import (
 	"github.com/lian-rr/clio/tui/view/style"
 )
 
-type SearchView struct {
+type Search struct {
 	logger *slog.Logger
 	title  string
 	input  textinput.Model
 }
 
-func NewSearchView(logger *slog.Logger) SearchView {
+func NewSearch(logger *slog.Logger) Search {
 	input := textinput.New()
 	input.Placeholder = "type something"
 	input.TextStyle = lipgloss.NewStyle().
@@ -26,7 +26,7 @@ func NewSearchView(logger *slog.Logger) SearchView {
 			Dark:  "#626262",
 		})
 
-	return SearchView{
+	return Search{
 		title:  "Search",
 		input:  input,
 		logger: logger,
@@ -34,18 +34,18 @@ func NewSearchView(logger *slog.Logger) SearchView {
 }
 
 // Init starts the input blink
-func (p *SearchView) Init() tea.Cmd {
+func (p *Search) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (p *SearchView) Update(msg tea.Msg) (SearchView, tea.Cmd) {
+func (p *Search) Update(msg tea.Msg) (Search, tea.Cmd) {
 	p.logger.Debug("update in search", slog.Any("msg", msg))
 	var cmd tea.Cmd
 	p.input, cmd = p.input.Update(msg)
 	return *p, cmd
 }
 
-func (p *SearchView) View() string {
+func (p *Search) View() string {
 	return style.Border.BorderBottom(true).Render(
 		lipgloss.JoinHorizontal(lipgloss.Left,
 			p.title+" ",
@@ -54,22 +54,22 @@ func (p *SearchView) View() string {
 	)
 }
 
-func (p *SearchView) Focus() {
+func (p *Search) Focus() {
 	p.input.Focus()
 }
 
-func (p *SearchView) Unfocus() {
+func (p *Search) Unfocus() {
 	p.input.Blur()
 }
 
-func (p *SearchView) Reset() {
+func (p *Search) Reset() {
 	p.input.Reset()
 }
 
-func (p *SearchView) Content() string {
+func (p *Search) Content() string {
 	return p.input.Value()
 }
 
-func (p *SearchView) SetWidth(width int) {
+func (p *Search) SetWidth(width int) {
 	p.input.Width = width - (len(p.title) + 4)
 }

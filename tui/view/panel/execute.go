@@ -17,8 +17,8 @@ import (
 	"github.com/lian-rr/clio/tui/view/util"
 )
 
-// ExecutePanel handles the panel for executing a command.
-type ExecutePanel struct {
+// Execute handles the panel for executing a command.
+type Execute struct {
 	command *command.Command
 
 	paramsTable *table.Table
@@ -35,8 +35,8 @@ type ExecutePanel struct {
 	logger       *slog.Logger
 }
 
-// NewExecutePanel returns a new ExecutePanel.
-func NewExecutePanel(logger *slog.Logger) ExecutePanel {
+// NewExecute returns a new ExecutePanel.
+func NewExecute(logger *slog.Logger) Execute {
 	infoTable := table.New().
 		Border(lipgloss.HiddenBorder())
 
@@ -45,7 +45,7 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
-	return ExecutePanel{
+	return Execute{
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
@@ -61,12 +61,12 @@ func NewExecutePanel(logger *slog.Logger) ExecutePanel {
 }
 
 // Init starts the input blink
-func (p *ExecutePanel) Init() tea.Cmd {
+func (p *Execute) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 // Update handles the msgs.
-func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
+func (p *Execute) Update(msg tea.Msg) (Execute, tea.Cmd) {
 	paramCount := len(p.paramInputs)
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -113,7 +113,7 @@ func (p *ExecutePanel) Update(msg tea.Msg) (ExecutePanel, tea.Cmd) {
 }
 
 // View returns the string representation of the panel.
-func (p *ExecutePanel) View() string {
+func (p *Execute) View() string {
 	if p.command == nil {
 		return ""
 	}
@@ -157,7 +157,7 @@ func (p *ExecutePanel) View() string {
 }
 
 // SetCommand sets the panel content.
-func (p *ExecutePanel) SetCommand(cmd command.Command) error {
+func (p *Execute) SetCommand(cmd command.Command) error {
 	inputStyle := lipgloss.NewStyle().
 		Italic(true).
 		Foreground(lipgloss.AdaptiveColor{
@@ -204,14 +204,14 @@ func (p *ExecutePanel) SetCommand(cmd command.Command) error {
 }
 
 // SetSize sets the panel size.
-func (p *ExecutePanel) SetSize(width, height int) {
+func (p *Execute) SetSize(width, height int) {
 	p.width = width
 	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
 	p.paramsTable.Width(w)
 }
 
-func (p *ExecutePanel) produceCommand() (string, error) {
+func (p *Execute) produceCommand() (string, error) {
 	arguments := make([]command.Argument, 0, len(p.command.Params))
 	for param, input := range p.paramInputs {
 		val := input.Value()
