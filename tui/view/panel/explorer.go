@@ -6,15 +6,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/lian-rr/clio/command"
+	ckey "github.com/lian-rr/clio/tui/view/key"
 )
 
 // Explorer handles the panel for listing the commands.
 type Explorer struct {
-	list list.Model
+	keyMap ckey.Map
+	list   list.Model
 }
 
 // NewExplorer returns a new ExplorerView.
-func NewExplorer() Explorer {
+func NewExplorer(keys ckey.Map) Explorer {
 	view := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	view.DisableQuitKeybindings()
 	view.SetShowTitle(false)
@@ -23,7 +25,8 @@ func NewExplorer() Explorer {
 	view.SetShowStatusBar(false)
 
 	return Explorer{
-		list: view,
+		list:   view,
+		keyMap: keys,
 	}
 }
 
@@ -101,7 +104,20 @@ func (p *Explorer) RefreshCommand(cmd command.Command) {
 }
 
 func (p *Explorer) ShortHelp() []key.Binding {
-	return nil
+	return []key.Binding{
+		p.keyMap.Quit,
+		p.keyMap.Compose,
+		p.keyMap.Edit,
+		p.keyMap.Copy,
+		p.keyMap.Delete,
+		p.keyMap.Search,
+		p.keyMap.DiscardSearch,
+		p.keyMap.Explain,
+	}
+}
+
+func (p *Explorer) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }
 
 // ExplorerItem is the explorer items

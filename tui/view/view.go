@@ -55,18 +55,20 @@ type professor interface {
 
 // New returns a new main view.
 func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
+	keys := ckey.DefaultMap
+
 	m := Main{
 		ctx:               ctx,
 		commandController: manager,
 		activityChan:      make(chan msgs.AsyncMsg),
 		titleStyle:        style.Title,
-		keys:              ckey.DefaultMap,
-		explorerPanel:     panel.NewExplorer(),
-		searchPanel:       panel.NewSearch(logger),
+		keys:              keys,
+		explorerPanel:     panel.NewExplorer(keys),
+		searchPanel:       panel.NewSearch(keys, logger),
 		detailPanel:       panel.NewDetails(logger),
-		executePanel:      panel.NewExecute(logger),
-		editPanel:         panel.NewEdit(logger),
-		explainPanel:      panel.NewExplain(logger),
+		executePanel:      panel.NewExecute(keys, logger),
+		editPanel:         panel.NewEdit(keys, logger),
+		explainPanel:      panel.NewExplain(keys, logger),
 		help:              help.New(),
 		focus:             navigationFocus,
 		logger:            logger,
@@ -128,7 +130,19 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Main) View() string {
-	help := m.help.View(m.keys)
+	var help string
+	switch m.focus {
+	case searchFocus:
+		help = m.help.View(&m.searchPanel)
+	case executeFocus:
+		help = m.help.View(&m.executePanel)
+	case editFocus:
+		help = m.help.View(&m.editPanel)
+	case explainFocus:
+		help = m.help.View(&m.explainPanel)
+	default:
+		help = m.help.View(&m.explorerPanel)
+	}
 
 	return style.Document.Render(
 		lipgloss.JoinVertical(

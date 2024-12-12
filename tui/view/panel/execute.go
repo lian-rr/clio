@@ -20,6 +20,7 @@ import (
 // Execute handles the panel for executing a command.
 type Execute struct {
 	command *command.Command
+	keyMap  ckey.Map
 
 	paramsTable *table.Table
 	infoTable   *table.Table
@@ -36,7 +37,7 @@ type Execute struct {
 }
 
 // NewExecute returns a new ExecutePanel.
-func NewExecute(logger *slog.Logger) Execute {
+func NewExecute(keys ckey.Map, logger *slog.Logger) Execute {
 	infoTable := table.New().
 		Border(lipgloss.HiddenBorder())
 
@@ -46,6 +47,7 @@ func NewExecute(logger *slog.Logger) Execute {
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
 	return Execute{
+		keyMap:      keys,
 		logger:      logger,
 		infoTable:   infoTable,
 		paramsTable: params,
@@ -72,20 +74,20 @@ func (p *Execute) Update(msg tea.Msg) (Execute, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, ckey.DefaultMap.NextParamKey):
+		case key.Matches(msg, p.keyMap.NextParamKey):
 			if paramCount > 1 {
 				p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
 				p.selectedInput = (p.selectedInput + 1) % paramCount
 				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 			}
-		case key.Matches(msg, ckey.DefaultMap.PreviousParamKey):
+		case key.Matches(msg, p.keyMap.PreviousParamKey):
 			if paramCount > 1 {
 				p.paramInputs[p.orderedParams[p.selectedInput]].Blur()
 				// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 				p.selectedInput = ((p.selectedInput-1)%paramCount + paramCount) % paramCount
 				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 			}
-		case key.Matches(msg, ckey.DefaultMap.Enter):
+		case key.Matches(msg, p.keyMap.Go):
 			out, err := p.produceCommand()
 			if err != nil {
 				p.logger.Warn("producing incomplete command", slog.Any("error", err))
@@ -209,6 +211,19 @@ func (p *Execute) SetSize(width, height int) {
 	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
 	p.paramsTable.Width(w)
+}
+
+func (p *Edit) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Back,
+		p.keyMap.NextParamKey,
+		p.keyMap.PreviousParamKey,
+		p.keyMap.Go,
+	}
+}
+
+func (p *Edit) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }
 
 func (p *Execute) produceCommand() (string, error) {

@@ -3,10 +3,12 @@ package panel
 import (
 	"log/slog"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/style"
 )
 
@@ -14,9 +16,10 @@ type Search struct {
 	logger *slog.Logger
 	title  string
 	input  textinput.Model
+	keyMap ckey.Map
 }
 
-func NewSearch(logger *slog.Logger) Search {
+func NewSearch(keys ckey.Map, logger *slog.Logger) Search {
 	input := textinput.New()
 	input.Placeholder = "type something"
 	input.TextStyle = lipgloss.NewStyle().
@@ -29,6 +32,7 @@ func NewSearch(logger *slog.Logger) Search {
 	return Search{
 		title:  "Search",
 		input:  input,
+		keyMap: keys,
 		logger: logger,
 	}
 }
@@ -52,6 +56,17 @@ func (p *Search) View() string {
 			p.input.View(),
 		),
 	)
+}
+
+func (p *Search) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Back,
+		p.keyMap.Go,
+	}
+}
+
+func (p *Search) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }
 
 func (p *Search) Focus() {

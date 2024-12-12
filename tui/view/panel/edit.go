@@ -39,8 +39,9 @@ const fixedInputs = 3
 
 // Edit handles the panel for editing or creating a command.
 type Edit struct {
-	cmd  command.Command
-	mode EditMode
+	cmd    command.Command
+	keyMap ckey.Map
+	mode   EditMode
 	// cache the params inputs
 	paramsContent map[string][2]*textinput.Model
 
@@ -62,7 +63,7 @@ type Edit struct {
 }
 
 // NewEdit returns a new ExecutePanel.
-func NewEdit(logger *slog.Logger) Edit {
+func NewEdit(keys ckey.Map, logger *slog.Logger) Edit {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Enter the command name"
 	descInput := textinput.New()
@@ -86,6 +87,7 @@ func NewEdit(logger *slog.Logger) Edit {
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
 	return Edit{
+		keyMap:        keys,
 		mode:          NewCommandMode,
 		infoTable:     infoTable,
 		confirmation:  dialog.New("Are you sure you want to edit the command?"),
@@ -127,7 +129,7 @@ func (p *Edit) Update(msg tea.Msg) (Edit, tea.Cmd) {
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
 			p.inputs[p.selectedInput].Focus()
-		case key.Matches(msg, ckey.DefaultMap.Enter):
+		case key.Matches(msg, ckey.DefaultMap.Compose):
 			if p.mode == EditCommandMode {
 				p.confirm = true
 				p.confirmation = p.confirmation.Reset()
@@ -301,6 +303,19 @@ func (p *Edit) Reset() {
 	p.selectedInput = nameInputPos
 	p.confirm = false
 	p.confirmation.Reset()
+}
+
+func (p *Execute) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Back,
+		p.keyMap.NextParamKey,
+		p.keyMap.PreviousParamKey,
+		p.keyMap.Go,
+	}
+}
+
+func (p *Execute) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }
 
 func (p *Edit) done() tea.Cmd {
