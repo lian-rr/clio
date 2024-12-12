@@ -30,12 +30,12 @@ type Main struct {
 	logger *slog.Logger
 
 	// views
-	searchPanel   panel.SearchView
-	explorerPanel panel.ExplorerPanel
-	detailPanel   panel.DetailsPanel
-	executePanel  panel.ExecutePanel
-	editPanel     panel.EditPanel
-	explainPanel  panel.ExplainPanel
+	searchPanel   panel.Search
+	explorerPanel panel.Explorer
+	detailPanel   panel.Details
+	executePanel  panel.Execute
+	editPanel     panel.Edit
+	explainPanel  panel.Explain
 	help          help.Model
 
 	focus        focus
@@ -55,18 +55,20 @@ type professor interface {
 
 // New returns a new main view.
 func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
+	keys := ckey.DefaultMap
+
 	m := Main{
 		ctx:               ctx,
 		commandController: manager,
 		activityChan:      make(chan msgs.AsyncMsg),
 		titleStyle:        style.Title,
-		keys:              ckey.DefaultMap,
-		explorerPanel:     panel.NewExplorerPanel(),
-		searchPanel:       panel.NewSearchView(logger),
-		detailPanel:       panel.NewDetailsPanel(logger),
-		executePanel:      panel.NewExecutePanel(logger),
-		editPanel:         panel.NewEditPanel(logger),
-		explainPanel:      panel.NewExplainPanel(logger),
+		keys:              keys,
+		explorerPanel:     panel.NewExplorer(keys),
+		searchPanel:       panel.NewSearch(keys, logger),
+		detailPanel:       panel.NewDetails(logger),
+		executePanel:      panel.NewExecute(keys, logger),
+		editPanel:         panel.NewEdit(keys, logger),
+		explainPanel:      panel.NewExplain(keys, logger),
 		help:              help.New(),
 		focus:             navigationFocus,
 		logger:            logger,
@@ -128,6 +130,20 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Main) View() string {
+	var help string
+	switch m.focus {
+	case searchFocus:
+		help = m.help.View(&m.searchPanel)
+	case executeFocus:
+		help = m.help.View(&m.executePanel)
+	case editFocus:
+		help = m.help.View(&m.editPanel)
+	case explainFocus:
+		help = m.help.View(&m.explainPanel)
+	default:
+		help = m.help.View(&m.explorerPanel)
+	}
+
 	return style.Document.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Top,
@@ -149,7 +165,7 @@ func (m *Main) View() string {
 						m.getPanelView(),
 					)),
 			),
-			style.Help.Render(m.help.View(m.keys)),
+			style.Help.Render(help),
 		),
 	)
 }

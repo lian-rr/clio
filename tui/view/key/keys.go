@@ -10,7 +10,8 @@ type Map struct {
 	DiscardSearch    key.Binding
 	Quit             key.Binding
 	ForceQuit        key.Binding
-	Enter            key.Binding
+	Compose          key.Binding
+	Go               key.Binding
 	Back             key.Binding
 	New              key.Binding
 	Edit             key.Binding
@@ -24,20 +25,23 @@ type Map struct {
 // DefaultMap of key bindings.
 var DefaultMap = Map{
 	Search: key.NewBinding(
-		key.WithKeys("tab"),
-		key.WithHelp("tab", "search")),
+		key.WithKeys("/"),
+		key.WithHelp("/", "search")),
 	DiscardSearch: key.NewBinding(
-		key.WithKeys("shift+tab"),
-		key.WithHelp("shift+tab", "all cmds")),
+		key.WithKeys("ctrl+d"),
+		key.WithHelp("ctrl+d", "discard search")),
 	Quit: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "quit")),
+		key.WithKeys("esc", "q"),
+		key.WithHelp("esc/q", "quit")),
 	ForceQuit: key.NewBinding(
 		key.WithKeys("ctrl+c"),
 		key.WithHelp("ctrl+c", "force exit")),
-	Enter: key.NewBinding(
+	Compose: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "compose")),
+	Go: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "go")),
 	Back: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back")),
@@ -58,11 +62,11 @@ var DefaultMap = Map{
 		key.WithHelp("backspace", "delete")),
 	NextParamKey: key.NewBinding(
 		key.WithKeys("tab"),
-		key.WithHelp("tab", "next param"),
+		key.WithHelp("tab", "next"),
 	),
 	PreviousParamKey: key.NewBinding(
 		key.WithKeys("shift+tab"),
-		key.WithHelp("shift+tab", "previous param"),
+		key.WithHelp("shift+tab", "prev"),
 	),
 }
 
@@ -71,7 +75,7 @@ func (km Map) ShortHelp() []key.Binding {
 		km.Back,
 		km.Search,
 		km.DiscardSearch,
-		km.Enter,
+		km.Compose,
 		km.New,
 		km.Edit,
 		km.Copy,

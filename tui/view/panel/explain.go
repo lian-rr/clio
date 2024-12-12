@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/alecthomas/chroma/v2/quick"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,14 +14,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lian-rr/clio/command"
+	ckey "github.com/lian-rr/clio/tui/view/key"
 	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
 
-// ExplainPanel handles the panel for explaing the command
-type ExplainPanel struct {
+// Explain handles the panel for explaing the command
+type Explain struct {
 	logger  *slog.Logger
+	keyMap  ckey.Map
 	comand  string
 	content viewport.Model
 	spinner spinner.Model
@@ -33,7 +36,7 @@ type ExplainPanel struct {
 	titleStyle lipgloss.Style
 }
 
-func NewExplainPanel(logger *slog.Logger) ExplainPanel {
+func NewExplain(keys ckey.Map, logger *slog.Logger) Explain {
 	vp := viewport.New(0, 0)
 	vp.Style = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -43,19 +46,20 @@ func NewExplainPanel(logger *slog.Logger) ExplainPanel {
 	s.Spinner = spinner.Points
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	return ExplainPanel{
+	return Explain{
 		logger:     logger,
+		keyMap:     keys,
 		content:    vp,
 		spinner:    s,
 		titleStyle: style.Title,
 	}
 }
 
-func (p *ExplainPanel) Init() tea.Cmd {
+func (p *Explain) Init() tea.Cmd {
 	return p.spinner.Tick
 }
 
-func (p *ExplainPanel) SetCommand(cmd command.Command) error {
+func (p *Explain) SetCommand(cmd command.Command) error {
 	var b bytes.Buffer
 	if err := quick.Highlight(&b, cmd.Command, chromaLang, chromaFormatter, chromaStyle); err != nil {
 		return err
@@ -69,7 +73,7 @@ func (p *ExplainPanel) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (p *ExplainPanel) SetExplanation(explanation string) error {
+func (p *Explain) SetExplanation(explanation string) error {
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithWordWrap(p.width),
 		glamour.WithStandardStyle(styles.DarkStyle),
@@ -88,7 +92,7 @@ func (p *ExplainPanel) SetExplanation(explanation string) error {
 	return nil
 }
 
-func (p *ExplainPanel) View() string {
+func (p *Explain) View() string {
 	sty := lipgloss.NewStyle()
 	cont := "Loading " + p.spinner.View()
 	if !p.loading {
@@ -110,7 +114,7 @@ func (p *ExplainPanel) View() string {
 		))
 }
 
-func (p *ExplainPanel) Update(msg tea.Msg) (ExplainPanel, tea.Cmd) {
+func (p *Explain) Update(msg tea.Msg) (Explain, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -123,7 +127,7 @@ func (p *ExplainPanel) Update(msg tea.Msg) (ExplainPanel, tea.Cmd) {
 	return *p, cmd
 }
 
-func (p *ExplainPanel) SetSize(width, height int) {
+func (p *Explain) SetSize(width, height int) {
 	p.titleStyle.Width(width)
 	p.width = width
 	p.height = height
@@ -131,4 +135,21 @@ func (p *ExplainPanel) SetSize(width, height int) {
 	w, h := util.RelativeDimensions(width, height, .9, .77)
 	p.content.Width = w
 	p.content.Height = h
+}
+
+func (p *Explain) ShortHelp() []key.Binding {
+	keys := []key.Binding{
+		p.keyMap.Back,
+		p.content.KeyMap.Down,
+		p.content.KeyMap.Up,
+		p.content.KeyMap.PageDown,
+		p.content.KeyMap.PageUp,
+		p.content.KeyMap.HalfPageDown,
+		p.content.KeyMap.HalfPageUp,
+	}
+	return keys
+}
+
+func (p *Explain) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }

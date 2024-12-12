@@ -74,7 +74,7 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 			}
 
 			m.setContent(cmds)
-		case key.Matches(msg, m.keys.Enter):
+		case key.Matches(msg, m.keys.Compose):
 			item, ok := m.explorerPanel.SelectedCommand()
 			if !ok {
 				break
@@ -245,6 +245,7 @@ func (m *Main) handleSearchInput(msg tea.Msg) tea.Cmd {
 		m.setContent(cmds)
 	}
 
+	// TODO: change this to follow the aproach of other panels
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -256,7 +257,7 @@ func (m *Main) handleSearchInput(msg tea.Msg) tea.Cmd {
 			m.searchPanel.Reset()
 			getAll()
 			return changeFocus(navigationFocus, nil)
-		case key.Matches(msg, m.keys.Enter):
+		case key.Matches(msg, m.keys.Go):
 			m.searchPanel.Unfocus()
 			return changeFocus(navigationFocus, nil)
 		default:

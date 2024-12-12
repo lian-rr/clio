@@ -23,11 +23,11 @@ const (
 	cmdInputPos
 )
 
-// EditPanelMode represents the way the panel is going to be used.
-type EditPanelMode int
+// EditMode represents the way the panel is going to be used.
+type EditMode int
 
 const (
-	_ EditPanelMode = iota
+	_ EditMode = iota
 	// NewCommandMode pannel is going to return a new Command
 	NewCommandMode
 	// EditCommandMode pannel is going to return the passed Command updated.
@@ -37,10 +37,11 @@ const (
 // number of fixed inputs (name, description, command)
 const fixedInputs = 3
 
-// EditPanel handles the panel for editing or creating a command.
-type EditPanel struct {
-	cmd  command.Command
-	mode EditPanelMode
+// Edit handles the panel for editing or creating a command.
+type Edit struct {
+	cmd    command.Command
+	keyMap ckey.Map
+	mode   EditMode
 	// cache the params inputs
 	paramsContent map[string][2]*textinput.Model
 
@@ -61,8 +62,8 @@ type EditPanel struct {
 	inputStyle   lipgloss.Style
 }
 
-// NewEditPanel returns a new ExecutePanel.
-func NewEditPanel(logger *slog.Logger) EditPanel {
+// NewEdit returns a new ExecutePanel.
+func NewEdit(keys ckey.Map, logger *slog.Logger) Edit {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Enter the command name"
 	descInput := textinput.New()
@@ -85,7 +86,8 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("238"))).
 		Headers("NAME", "DESCRIPTION", "DEFAULT VALUE")
 
-	return EditPanel{
+	return Edit{
+		keyMap:        keys,
 		mode:          NewCommandMode,
 		infoTable:     infoTable,
 		confirmation:  dialog.New("Are you sure you want to edit the command?"),
@@ -102,12 +104,12 @@ func NewEditPanel(logger *slog.Logger) EditPanel {
 }
 
 // Init starts the input blink
-func (p *EditPanel) Init() tea.Cmd {
+func (p *Edit) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 // Update handles the msgs.
-func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
+func (p *Edit) Update(msg tea.Msg) (Edit, tea.Cmd) {
 	inputCount := len(p.inputs)
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -127,7 +129,7 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 			// https://stackoverflow.com/questions/43018206/modulo-of-negative-integers-in-go
 			p.selectedInput = ((p.selectedInput-1)%inputCount + inputCount) % inputCount
 			p.inputs[p.selectedInput].Focus()
-		case key.Matches(msg, ckey.DefaultMap.Enter):
+		case key.Matches(msg, ckey.DefaultMap.Compose):
 			if p.mode == EditCommandMode {
 				p.confirm = true
 				p.confirmation = p.confirmation.Reset()
@@ -161,7 +163,7 @@ func (p *EditPanel) Update(msg tea.Msg) (EditPanel, tea.Cmd) {
 }
 
 // View returns the string representation of the panel.
-func (p *EditPanel) View() string {
+func (p *Edit) View() string {
 	w := p.width - p.contentStyle.GetHorizontalBorderSize()
 	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
@@ -211,7 +213,7 @@ func (p *EditPanel) View() string {
 }
 
 // SetCommand sets the panel content.
-func (p *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
+func (p *Edit) SetCommand(mode EditMode, cmd *command.Command) error {
 	// clear the params inputs
 	for _, input := range p.inputs {
 		input.Reset()
@@ -236,7 +238,7 @@ func (p *EditPanel) SetCommand(mode EditPanelMode, cmd *command.Command) error {
 }
 
 // SetSize sets the panel size.
-func (p *EditPanel) SetSize(width, height int) {
+func (p *Edit) SetSize(width, height int) {
 	p.width = width
 	p.height = height
 	w, _ := util.RelativeDimensions(width, height, .7, .7)
@@ -245,7 +247,7 @@ func (p *EditPanel) SetSize(width, height int) {
 	p.inputStyle = p.inputStyle.Width(w)
 }
 
-func (p *EditPanel) updateCommand() error {
+func (p *Edit) updateCommand() error {
 	p.cmd.Name = p.inputs[nameInputPos].Value()
 	p.cmd.Description = p.inputs[descInputPos].Value()
 
@@ -261,7 +263,7 @@ func (p *EditPanel) updateCommand() error {
 	return nil
 }
 
-func (p *EditPanel) updateParams() {
+func (p *Edit) updateParams() {
 	paramPos := (p.selectedInput - fixedInputs) / 2
 	field := (p.selectedInput - fixedInputs) % 2
 
@@ -276,7 +278,7 @@ func (p *EditPanel) updateParams() {
 	}
 }
 
-func (p *EditPanel) refreshParamsInputs() {
+func (p *Edit) refreshParamsInputs() {
 	inputs := p.inputs[:fixedInputs]
 	for _, param := range p.cmd.Params {
 		if in, ok := p.paramsContent[param.Name]; ok {
@@ -297,13 +299,26 @@ func (p *EditPanel) refreshParamsInputs() {
 	p.inputs = inputs
 }
 
-func (p *EditPanel) Reset() {
+func (p *Edit) Reset() {
 	p.selectedInput = nameInputPos
 	p.confirm = false
 	p.confirmation.Reset()
 }
 
-func (p *EditPanel) done() tea.Cmd {
+func (p *Execute) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Back,
+		p.keyMap.NextParamKey,
+		p.keyMap.PreviousParamKey,
+		p.keyMap.Go,
+	}
+}
+
+func (p *Execute) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}
+
+func (p *Edit) done() tea.Cmd {
 	if err := p.cmd.Build(); err != nil {
 		p.logger.Warn("error building param", slog.Any("error", err))
 		return nil
