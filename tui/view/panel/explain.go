@@ -121,6 +121,7 @@ func (p *Explain) Update(msg tea.Msg) (Explain, tea.Cmd) {
 		p.content, cmd = p.content.Update(msg)
 	case spinner.TickMsg:
 		p.spinner, cmd = p.spinner.Update(msg)
+	// TODO: Pretty sure this is not necessary.
 	case msgs.SetExplanationMsg:
 		p.SetExplanation(msg.Explanation)
 	}

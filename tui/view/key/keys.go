@@ -16,6 +16,7 @@ type Map struct {
 	New              key.Binding
 	Edit             key.Binding
 	Explain          key.Binding
+	History          key.Binding
 	Copy             key.Binding
 	NextParamKey     key.Binding
 	PreviousParamKey key.Binding
@@ -54,6 +55,9 @@ var DefaultMap = Map{
 	Explain: key.NewBinding(
 		key.WithKeys("x"),
 		key.WithHelp("x", "explain")),
+	History: key.NewBinding(
+		key.WithKeys("y"),
+		key.WithHelp("y", "history")),
 	Copy: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "copy")),

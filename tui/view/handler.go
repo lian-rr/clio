@@ -21,6 +21,7 @@ import (
 const minCharCount = 3
 
 func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
+	// TODO: this is getting anoying, review this later, consider approach where the handlers are registered and then with a map[focus]handler is chosen.
 	handler := func(msg tea.Msg) tea.Cmd {
 		switch m.focus {
 		case searchFocus:
@@ -31,6 +32,8 @@ func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
 			return m.handleEditInput(msg)
 		case explainFocus:
 			return m.handleExplainInput(msg)
+		case historyFocus:
+			return m.handleHistoryInput(msg)
 		default:
 			return m.handleNavigationInput(msg)
 		}
@@ -136,6 +139,20 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				err := m.explainPanel.SetCommand(*item.Command)
 				if err != nil {
 					m.logger.Error("error setting explain view content", slog.Any("error", err))
+				}
+			})
+		case key.Matches(msg, m.keys.History):
+			item, ok := m.explorerPanel.SelectedCommand()
+			if !ok {
+				break
+			}
+
+			msgs.PublishAsyncMsg(m.activityChan, msgs.HandleRequestHistoryMsg(item.Command.ID))
+
+			return changeFocus(historyFocus, func(m *Main) {
+				err := m.historyPanel.SetCommand(*item.Command)
+				if err != nil {
+					m.logger.Error("error setting history view content", slog.Any("error", err))
 				}
 			})
 		case key.Matches(msg, m.keys.Delete):
@@ -315,6 +332,31 @@ func (m *Main) handleExplainInput(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+func (m *Main) handleHistoryInput(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keys.Back):
+			return changeFocus(navigationFocus, func(m *Main) {
+				item, ok := m.explorerPanel.SelectedCommand()
+				if !ok {
+					return
+				}
+				if err := m.detailPanel.SetCommand(*item.Command); err != nil {
+					m.logger.Error("error setting detail view content", slog.Any("error", err))
+				}
+			})
+		default:
+			m.historyPanel, cmd = m.historyPanel.Update(msg)
+		}
+	default:
+		// pass control for any other event
+		m.historyPanel, cmd = m.historyPanel.Update(msg)
+	}
+	return cmd
+}
+
 func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case msgs.RequestExplanationMsg:
@@ -328,6 +370,10 @@ func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 		go m.cacheExplanation(msg.CommandID, msg.Explanation)
 	case msgs.EvictCachedExplanationMsg:
 		go m.deleteExplanation(msg.CommandID)
+	case msgs.RequestHistoryMsg:
+		go m.fetchHistory(msg.CommandID)
+	case msgs.SetHistoryMsg:
+		m.historyPanel.SetHistory(msg.History)
 	default:
 		m.logger.Warn("unknown async msg captured",
 			slog.Any("msg", msg),
@@ -392,4 +438,79 @@ func (m *Main) deleteExplanation(commandID uuid.UUID) {
 	if err != nil {
 		m.logger.Error("error deleting explanation from cache", slog.Any("error", err))
 	}
+}
+
+func (m *Main) fetchHistory(commandID uuid.UUID) {
+	// ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*400)
+	// defer cancel()
+
+	history := command.History{
+		Usages: []command.Usage{
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+			{
+				Command:   "test 1",
+				Timestamp: time.Now(),
+			},
+		},
+	}
+
+	msgs.PublishAsyncMsg(
+		m.activityChan,
+		msgs.HandleSetHistoryMsg(history),
+	)
 }

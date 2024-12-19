@@ -36,6 +36,7 @@ type Main struct {
 	executePanel  panel.Execute
 	editPanel     panel.Edit
 	explainPanel  panel.Explain
+	historyPanel  panel.History
 	help          help.Model
 
 	focus        focus
@@ -69,6 +70,7 @@ func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...O
 		executePanel:      panel.NewExecute(keys, logger),
 		editPanel:         panel.NewEdit(keys, logger),
 		explainPanel:      panel.NewExplain(keys, logger),
+		historyPanel:      panel.NewHistory(keys, logger),
 		help:              help.New(),
 		focus:             navigationFocus,
 		logger:            logger,
@@ -206,6 +208,7 @@ func (m *Main) updateComponentsDimensions(width, height int) {
 	m.executePanel.SetSize(w, h)
 	m.editPanel.SetSize(w, h)
 	m.explainPanel.SetSize(w, h)
+	m.historyPanel.SetSize(w, h)
 }
 
 func (m *Main) setContent(cmds []command.Command) error {
@@ -232,6 +235,8 @@ func (m *Main) initFocusedPanel() tea.Cmd {
 		return m.editPanel.Init()
 	case explainFocus:
 		return m.explainPanel.Init()
+	case historyFocus:
+		return m.historyPanel.Init()
 	}
 	return nil
 }
@@ -244,6 +249,8 @@ func (m *Main) getPanelView() string {
 		return m.editPanel.View()
 	case explainFocus:
 		return m.explainPanel.View()
+	case historyFocus:
+		return m.historyPanel.View()
 	default:
 		return m.detailPanel.View()
 	}

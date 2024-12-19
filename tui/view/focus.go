@@ -14,6 +14,7 @@ const (
 	searchFocus
 	executeFocus
 	explainFocus
+	historyFocus
 )
 
 type updateFocusMsg struct {
