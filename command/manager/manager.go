@@ -29,6 +29,8 @@ type store interface {
 	ListCommands(context.Context) ([]command.Command, error)
 	DeleteCommand(context.Context, uuid.UUID) error
 	DeleteParameters(context.Context, []uuid.UUID) error
+	InsertUsage(context.Context, uuid.UUID, string) error
+	GetHistory(context.Context, uuid.UUID) (command.History, error)
 }
 
 type notebook interface {
@@ -144,6 +146,25 @@ func (m *Manager) UpdateCommand(ctx context.Context, cmd command.Command) (comma
 		return command.Command{}, err
 	}
 	return cmd, nil
+}
+
+// InsertUsage inserts the usage of a command
+func (m *Manager) InsertUsage(ctx context.Context, commandID uuid.UUID, usage string) error {
+	err := m.store.InsertUsage(ctx, commandID, usage)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetHistory returns the history of usages of the command.
+func (m *Manager) GetHistory(ctx context.Context, commandID uuid.UUID) (command.History, error) {
+	history, err := m.store.GetHistory(ctx, commandID)
+	if err != nil {
+		return command.History{}, err
+	}
+
+	return history, nil
 }
 
 // WriteExplanation writes the explanation in the notebook.

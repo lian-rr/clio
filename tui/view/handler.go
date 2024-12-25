@@ -21,7 +21,7 @@ import (
 const minCharCount = 3
 
 func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
-	// TODO: this is getting anoying, review this later, consider approach where the handlers are registered and then with a map[focus]handler is chosen.
+	// TODO: this is getting anoying, review this later, consider approach where the handlers are registered and then with a map[focus]handler chosen.
 	handler := func(msg tea.Msg) tea.Cmd {
 		switch m.focus {
 		case searchFocus:
@@ -41,11 +41,9 @@ func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case dialog.InitMsg:
 		m.confirmation = true
-		m.logger.Debug("dialog open", slog.Bool("confirmation", m.confirmation))
 		return handler(msg)
 	case dialog.AcceptMsg, dialog.DiscardMsg:
 		m.confirmation = false
-		m.logger.Debug("dialog closed", slog.Bool("confirmation", m.confirmation))
 		return handler(msg)
 	default:
 		return handler(msg)
@@ -370,10 +368,12 @@ func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 		go m.cacheExplanation(msg.CommandID, msg.Explanation)
 	case msgs.EvictCachedExplanationMsg:
 		go m.deleteExplanation(msg.CommandID)
+	case msgs.SaveUsageMsg:
+		go m.saveUsage(msg.CommandID, msg.Usage)
 	case msgs.RequestHistoryMsg:
-		go m.fetchHistory(msg.CommandID)
+		go m.getHistory(msg.CommandID)
 	case msgs.SetHistoryMsg:
-		m.historyPanel.SetHistory(msg.History)
+		m.historyPanel.SetHistoryContent(msg.History)
 	default:
 		m.logger.Warn("unknown async msg captured",
 			slog.Any("msg", msg),
@@ -403,7 +403,7 @@ func (m *Main) fetchExplanation(cmd command.Command) {
 		explanation, err = m.professor.Explain(ctx, cmd)
 		if err != nil {
 			m.logger.Error("error getting command explanation from professor",
-				slog.Any("command", "cmd"),
+				slog.Any("command", cmd),
 				slog.Any("error", err),
 			)
 			return
@@ -438,79 +438,4 @@ func (m *Main) deleteExplanation(commandID uuid.UUID) {
 	if err != nil {
 		m.logger.Error("error deleting explanation from cache", slog.Any("error", err))
 	}
-}
-
-func (m *Main) fetchHistory(commandID uuid.UUID) {
-	// ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*400)
-	// defer cancel()
-
-	history := command.History{
-		Usages: []command.Usage{
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-			{
-				Command:   "test 1",
-				Timestamp: time.Now(),
-			},
-		},
-	}
-
-	msgs.PublishAsyncMsg(
-		m.activityChan,
-		msgs.HandleSetHistoryMsg(history),
-	)
 }

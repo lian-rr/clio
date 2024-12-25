@@ -131,6 +131,11 @@ func (s *Sql) GetCommandByID(ctx context.Context, id uuid.UUID) (command.Command
 	if err != nil {
 		return command.Command{}, err
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			s.logger.Warn("error closing rows", slog.Any("error", err))
+		}
+	}()
 
 	params := make([]command.Parameter, 0)
 	for rows.Next() {
@@ -152,10 +157,9 @@ func (s *Sql) SearchCommand(ctx context.Context, term string) ([]command.Command
 	if err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		if err := rows.Close(); err != nil {
-			s.logger.Warn("error closing rows when listing commands", slog.Any("error", err))
+			s.logger.Warn("error closing rows", slog.Any("error", err))
 		}
 	}()
 
@@ -227,6 +231,37 @@ func (s *Sql) DeleteExplanation(ctx context.Context, cmdID uuid.UUID) error {
 		return fmt.Errorf("error delete explanation: %v", err)
 	}
 	return nil
+}
+
+// InsertUsage insert the usage of a command.
+func (s *Sql) InsertUsage(ctx context.Context, cmdID uuid.UUID, usage string) error {
+	_, err := s.db.ExecContext(ctx, sqlite.InsertUsageQuery, cmdID.String(), usage)
+	if err != nil {
+		return fmt.Errorf("error writing usage: %v", err)
+	}
+	return nil
+}
+
+// GetHistory returns the history of usages of a given command.
+func (s *Sql) GetHistory(ctx context.Context, cmdID uuid.UUID) (command.History, error) {
+	rows, err := s.db.QueryContext(ctx, sqlite.GetHistoryForCommand, cmdID.String())
+	if err != nil {
+		return command.History{}, err
+	}
+
+	usages := make([]command.Usage, 0)
+	for rows.Next() {
+		var usage command.Usage
+		if err := rows.Scan(&usage.Command, &usage.Timestamp); err != nil {
+			return command.History{}, err
+		}
+
+		usages = append(usages, usage)
+	}
+
+	return command.History{
+		Usages: usages,
+	}, nil
 }
 
 // Close closes the db driver.

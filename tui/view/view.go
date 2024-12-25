@@ -55,12 +55,12 @@ type professor interface {
 }
 
 // New returns a new main view.
-func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
+func New(ctx context.Context, controller controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
 	keys := ckey.DefaultMap
 
 	m := Main{
 		ctx:               ctx,
-		commandController: manager,
+		commandController: controller,
 		activityChan:      make(chan msgs.AsyncMsg),
 		titleStyle:        style.Title,
 		keys:              keys,
@@ -115,6 +115,13 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// handle outcome
 	case msgs.ExecuteCommandMsg:
 		m.logger.Debug("execute msg received")
+		if err := m.saveUsage(msg.CommandID, msg.Command); err != nil {
+			m.logger.Error("error storing command usage",
+				slog.Any("commandID", msg.CommandID),
+				slog.String("usage", msg.Command),
+				slog.Any("error", err),
+			)
+		}
 		m.Output = msg.Command
 		return m, tea.Quit
 	case msgs.NewCommandMsg:

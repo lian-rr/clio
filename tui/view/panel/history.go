@@ -137,7 +137,7 @@ func (p *History) SetCommand(cmd command.Command) error {
 	return nil
 }
 
-func (p *History) SetHistory(history command.History) {
+func (p *History) SetHistoryContent(history command.History) {
 	p.loading = false
 
 	rows := make([]btable.Row, 0, len(history.Usages))

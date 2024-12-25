@@ -336,3 +336,17 @@ func (m *mockStore) DeleteParameters(ctx context.Context, ids []uuid.UUID) error
 	args := m.Called(ctx, ids)
 	return args.Error(0)
 }
+
+func (m *mockStore) GetHistory(ctx context.Context, id uuid.UUID) (command.History, error) {
+	args := m.Called(ctx, id)
+	cmd := args.Get(0)
+	if cmd == nil {
+		return command.History{}, args.Error(1)
+	}
+	return cmd.(command.History), args.Error(1)
+}
+
+func (m *mockStore) InsertUsage(ctx context.Context, id uuid.UUID, usage string) error {
+	args := m.Called(ctx, id, usage)
+	return args.Error(0)
+}

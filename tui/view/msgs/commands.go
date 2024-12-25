@@ -2,6 +2,7 @@ package msgs
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 
 	"github.com/lian-rr/clio/command"
 )
@@ -36,14 +37,16 @@ func HandleUpdateCommandMsg(cmd command.Command) tea.Cmd {
 
 // ExecuteCommandMsg is the event triggered for executing a command
 type ExecuteCommandMsg struct {
-	Command string
+	CommandID uuid.UUID
+	Command   string
 }
 
 // HandleExecuteMsg returns a new ExecuteCommandMsg
-func HandleExecuteMsg(cmd string) tea.Cmd {
+func HandleExecuteMsg(commandID uuid.UUID, cmd string) tea.Cmd {
 	return func() tea.Msg {
 		return ExecuteCommandMsg{
-			Command: cmd,
+			CommandID: commandID,
+			Command:   cmd,
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/google/uuid"
 
 	"github.com/lian-rr/clio/command"
 	ckey "github.com/lian-rr/clio/tui/view/key"
@@ -88,12 +89,12 @@ func (p *Execute) Update(msg tea.Msg) (Execute, tea.Cmd) {
 				p.paramInputs[p.orderedParams[p.selectedInput]].Focus()
 			}
 		case key.Matches(msg, p.keyMap.Go):
-			out, err := p.produceCommand()
+			id, out, err := p.produceCommand()
 			if err != nil {
 				p.logger.Warn("producing incomplete command", slog.Any("error", err))
 				break
 			}
-			return *p, msgs.HandleExecuteMsg(out)
+			return *p, msgs.HandleExecuteMsg(id, out)
 		default:
 			if len(p.paramInputs) > 0 {
 				var input textinput.Model
@@ -226,12 +227,12 @@ func (p *Edit) FullHelp() [][]key.Binding {
 	return [][]key.Binding{}
 }
 
-func (p *Execute) produceCommand() (string, error) {
+func (p *Execute) produceCommand() (commandID uuid.UUID, out string, err error) {
 	arguments := make([]command.Argument, 0, len(p.command.Params))
 	for param, input := range p.paramInputs {
 		val := input.Value()
 		if len(val) == 0 {
-			return "", fmt.Errorf("value empty for param %q", param)
+			return uuid.Nil, "", fmt.Errorf("value empty for param %q", param)
 		}
 		arguments = append(arguments, command.Argument{
 			Name:  param,
@@ -241,8 +242,8 @@ func (p *Execute) produceCommand() (string, error) {
 
 	outCommand, err := p.command.Compile(arguments)
 	if err != nil {
-		return "", fmt.Errorf("error compiling command: %p", err)
+		return uuid.Nil, "", fmt.Errorf("error compiling command: %p", err)
 	}
 
-	return outCommand, nil
+	return p.command.ID, outCommand, nil
 }

@@ -7,12 +7,28 @@ import (
 	"github.com/lian-rr/clio/command"
 )
 
+// SaveUsageMsg is the event triggered for saving the usage of the command.
+type SaveUsageMsg struct {
+	CommandID uuid.UUID
+	Usage     string
+}
+
+// HandleSaveUsageMsg returns a new SaveUsageMsg
+func HandleSaveUsageMsg(commandID uuid.UUID, usage string) tea.Cmd {
+	return func() tea.Msg {
+		return SaveUsageMsg{
+			CommandID: commandID,
+			Usage:     usage,
+		}
+	}
+}
+
 // RequestHistoryMsg is the event triggered when the command history is requested.
 type RequestHistoryMsg struct {
 	CommandID uuid.UUID
 }
 
-// HandleRequestHistoryMsg returns a new HandleRequestHistoryMsg.
+// HandleRequestHistoryMsg returns a new RequestHistoryMsg.
 func HandleRequestHistoryMsg(commandID uuid.UUID) tea.Cmd {
 	return func() tea.Msg {
 		return RequestHistoryMsg{
