@@ -26,6 +26,8 @@ type History struct {
 
 	loading bool
 
+	height       int
+	width        int
 	contentStyle lipgloss.Style
 	titleStyle   lipgloss.Style
 }
@@ -79,17 +81,16 @@ func (p History) View() string {
 	sty := lipgloss.NewStyle()
 	cont := "Loading " + p.spinner.View()
 	if !p.loading {
-		cont = lipgloss.JoinVertical(lipgloss.Center,
-			sty.PaddingRight(2).
-				PaddingLeft(2).
-				Render(p.historyTable.View()),
-		)
+		cont = p.historyTable.View()
 	}
+
+	w := p.width - p.contentStyle.GetHorizontalBorderSize()
+	h := p.height - p.contentStyle.GetVerticalFrameSize()
 
 	return style.Border.Render(
 		p.contentStyle.
-			// Width(w).
-			// Height(h).
+			Width(w).
+			Height(h).
 			Render(
 				lipgloss.JoinVertical(
 					lipgloss.Center,
@@ -153,6 +154,9 @@ func (p *History) SetHistoryContent(history command.History) {
 }
 
 func (p *History) SetSize(width, height int) {
+	p.height = height
+	p.width = width
+
 	p.titleStyle.Width(width)
 	w, _ := util.RelativeDimensions(width, height, .6, .77)
 	p.historyTable.Columns()[0].Width = w
