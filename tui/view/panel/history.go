@@ -10,9 +10,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/google/uuid"
 
 	"github.com/lian-rr/clio/command"
 	ckey "github.com/lian-rr/clio/tui/view/key"
+	"github.com/lian-rr/clio/tui/view/msgs"
 	"github.com/lian-rr/clio/tui/view/style"
 	"github.com/lian-rr/clio/tui/view/util"
 )
@@ -24,7 +26,8 @@ type History struct {
 	spinner      spinner.Model
 	historyTable btable.Model
 
-	loading bool
+	loading   bool
+	commandID uuid.UUID
 
 	height       int
 	width        int
@@ -110,7 +113,7 @@ func (p *History) Update(msg tea.Msg) (History, tea.Cmd) {
 		switch {
 		case key.Matches(msg, p.keyMap.Go):
 			if p.historyTable.Focused() {
-				p.logger.Debug("Go event", slog.Any("cont", p.historyTable.SelectedRow()))
+				return *p, msgs.HandleExecuteMsg(p.commandID, p.historyTable.SelectedRow()[0])
 			}
 		default:
 			p.historyTable, cmd = p.historyTable.Update(msg)
@@ -127,6 +130,7 @@ func (p *History) SetCommand(cmd command.Command) error {
 		return err
 	}
 
+	p.commandID = cmd.ID
 	p.infoTable.Data(table.NewStringData([][]string{
 		{style.Label.Render("Name"), style.Header.Render(cmd.Name)},
 		{style.Label.Render("Description"), style.Header.Render(cmd.Description)},
