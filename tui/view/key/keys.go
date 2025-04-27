@@ -23,6 +23,25 @@ type Map struct {
 	Delete           key.Binding
 }
 
+func (km Map) ShortHelp() []key.Binding {
+	return []key.Binding{
+		km.Back,
+		km.Search,
+		km.DiscardSearch,
+		km.Compose,
+		km.New,
+		km.Edit,
+		km.Copy,
+		km.Explain,
+		km.Delete,
+		km.History,
+	}
+}
+
+func (km Map) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}
+
 // DefaultMap of key bindings.
 var DefaultMap = Map{
 	Search: key.NewBinding(
@@ -72,22 +91,4 @@ var DefaultMap = Map{
 		key.WithKeys("shift+tab"),
 		key.WithHelp("shift+tab", "prev"),
 	),
-}
-
-func (km Map) ShortHelp() []key.Binding {
-	return []key.Binding{
-		km.Back,
-		km.Search,
-		km.DiscardSearch,
-		km.Compose,
-		km.New,
-		km.Edit,
-		km.Copy,
-		km.Explain,
-		km.Delete,
-	}
-}
-
-func (km Map) FullHelp() [][]key.Binding {
-	return [][]key.Binding{}
 }

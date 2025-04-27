@@ -155,6 +155,7 @@ func (p *History) SetHistoryContent(history command.History) {
 
 	p.historyTable.SetRows(rows)
 	p.historyTable.Focus()
+	p.historyTable.SetCursor(0)
 }
 
 func (p *History) SetSize(width, height int) {

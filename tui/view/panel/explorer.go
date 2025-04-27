@@ -113,6 +113,7 @@ func (p *Explorer) ShortHelp() []key.Binding {
 		p.keyMap.Search,
 		p.keyMap.DiscardSearch,
 		p.keyMap.Explain,
+		p.keyMap.History,
 	}
 }
 
