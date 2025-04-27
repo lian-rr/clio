@@ -214,7 +214,7 @@ func (p *Execute) SetSize(width, height int) {
 	p.paramsTable.Width(w)
 }
 
-func (p *Edit) ShortHelp() []key.Binding {
+func (p *Execute) ShortHelp() []key.Binding {
 	return []key.Binding{
 		p.keyMap.Back,
 		p.keyMap.NextParamKey,
