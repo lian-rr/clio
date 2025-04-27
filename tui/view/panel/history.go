@@ -168,6 +168,19 @@ func (p *History) SetSize(width, height int) {
 	p.historyTable.Columns()[1].Width = w
 }
 
+func (p *History) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Back,
+		p.historyTable.KeyMap.LineDown,
+		p.historyTable.KeyMap.LineDown,
+		p.keyMap.Go,
+	}
+}
+
+func (p *History) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}
+
 func getTableStyles() btable.Styles {
 	s := btable.DefaultStyles()
 	s.Header = s.Header.

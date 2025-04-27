@@ -149,6 +149,8 @@ func (m *Main) View() string {
 		help = m.help.View(&m.editPanel)
 	case explainFocus:
 		help = m.help.View(&m.explainPanel)
+	case historyFocus:
+		help = m.help.View(&m.historyPanel)
 	default:
 		help = m.help.View(&m.explorerPanel)
 	}
