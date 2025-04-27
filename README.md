@@ -11,7 +11,7 @@ CLIo offers an intuitive and powerful way to master your shell.
 ## Installation
 ### Install latest binary
 The recommended approach is to use the installation script, which automatically handles the installation of **CLIo** including the requirements for your environment.
-```bash
+```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/latest/download/clio-installer.sh | sh
 ```
 ### From source
@@ -23,7 +23,6 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/l
 ```sh
 go install --tags "fts5" github.com/lian-rr/clio@latest
 ```
-
 
 ### Build from source
 ```sh
