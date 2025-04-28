@@ -21,6 +21,7 @@ import (
 const minCharCount = 3
 
 func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
+	// TODO: this is getting anoying, review this later, consider approach where the handlers are registered and then with a map[focus]handler chosen.
 	handler := func(msg tea.Msg) tea.Cmd {
 		switch m.focus {
 		case searchFocus:
@@ -31,6 +32,8 @@ func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
 			return m.handleEditInput(msg)
 		case explainFocus:
 			return m.handleExplainInput(msg)
+		case historyFocus:
+			return m.handleHistoryInput(msg)
 		default:
 			return m.handleNavigationInput(msg)
 		}
@@ -38,11 +41,9 @@ func (m *Main) handleInput(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case dialog.InitMsg:
 		m.confirmation = true
-		m.logger.Debug("dialog open", slog.Bool("confirmation", m.confirmation))
 		return handler(msg)
 	case dialog.AcceptMsg, dialog.DiscardMsg:
 		m.confirmation = false
-		m.logger.Debug("dialog closed", slog.Bool("confirmation", m.confirmation))
 		return handler(msg)
 	default:
 		return handler(msg)
@@ -136,6 +137,20 @@ func (m *Main) handleNavigationInput(msg tea.Msg) tea.Cmd {
 				err := m.explainPanel.SetCommand(*item.Command)
 				if err != nil {
 					m.logger.Error("error setting explain view content", slog.Any("error", err))
+				}
+			})
+		case key.Matches(msg, m.keys.History):
+			item, ok := m.explorerPanel.SelectedCommand()
+			if !ok {
+				break
+			}
+
+			msgs.PublishAsyncMsg(m.activityChan, msgs.HandleRequestHistoryMsg(item.Command.ID))
+
+			return changeFocus(historyFocus, func(m *Main) {
+				err := m.historyPanel.SetCommand(*item.Command)
+				if err != nil {
+					m.logger.Error("error setting history view content", slog.Any("error", err))
 				}
 			})
 		case key.Matches(msg, m.keys.Delete):
@@ -315,6 +330,31 @@ func (m *Main) handleExplainInput(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+func (m *Main) handleHistoryInput(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keys.Back):
+			return changeFocus(navigationFocus, func(m *Main) {
+				item, ok := m.explorerPanel.SelectedCommand()
+				if !ok {
+					return
+				}
+				if err := m.detailPanel.SetCommand(*item.Command); err != nil {
+					m.logger.Error("error setting detail view content", slog.Any("error", err))
+				}
+			})
+		default:
+			m.historyPanel, cmd = m.historyPanel.Update(msg)
+		}
+	default:
+		// pass control for any other event
+		m.historyPanel, cmd = m.historyPanel.Update(msg)
+	}
+	return cmd
+}
+
 func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case msgs.RequestExplanationMsg:
@@ -328,6 +368,12 @@ func (m *Main) handleAsyncActivities(msg tea.Msg) tea.Cmd {
 		go m.cacheExplanation(msg.CommandID, msg.Explanation)
 	case msgs.EvictCachedExplanationMsg:
 		go m.deleteExplanation(msg.CommandID)
+	case msgs.SaveUsageMsg:
+		go m.saveUsage(msg.CommandID, msg.Usage)
+	case msgs.RequestHistoryMsg:
+		go m.getHistory(msg.CommandID)
+	case msgs.SetHistoryMsg:
+		m.historyPanel.SetHistoryContent(msg.History)
 	default:
 		m.logger.Warn("unknown async msg captured",
 			slog.Any("msg", msg),
@@ -357,7 +403,7 @@ func (m *Main) fetchExplanation(cmd command.Command) {
 		explanation, err = m.professor.Explain(ctx, cmd)
 		if err != nil {
 			m.logger.Error("error getting command explanation from professor",
-				slog.Any("command", "cmd"),
+				slog.Any("command", cmd),
 				slog.Any("error", err),
 			)
 			return

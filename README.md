@@ -17,13 +17,12 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/lian-rr/clio/releases/l
 ### From source
 
 #### Prerequisites
-- go `v.1.20+`
+- go `v.1.21+`
 
 #### Install with Go
 ```sh
 go install --tags "fts5" github.com/lian-rr/clio@latest
 ```
-
 
 ### Build from source
 ```sh
@@ -32,24 +31,27 @@ cd clio
 go build --tags "fts5" .
 ```
 
+> Remeber to add the binary path to your `PATH` environment variable
+
 ## Features
 
 - 📚 **Command Library**: Browse a comprehensive list of terminal commands with detailed descriptions.
 - 📖 **Command Explanations**: Get beginner-friendly explanations of commands, powered by OpenAI.
 - 🔍 **Search and Filter**: Quickly find commands by name, keyword, or functionality.
+- 📋 **History**: See previous uses of the command with the arguments used.
 
 ### Roadmap
 - Export/Import command library.
-- History of previous uses.
 - Configure custom Explanation engines (e.g Ollama)
 - Custom Themes
 - Custom Keymaps
 
 ## Configuration
-In case you want to customize some of **CLIo** options 
+In case you want to customize some of **CLIo**'s options 
 you can provide the necessary configuration in the config file. 
 
 **CLIo** checks for the configuration in the `$HOME/.config/clio/clio.toml` file.
+This path can be replaced by setting the `CLIO_CONFIG_PATH` environment variable.
 
 ### Example config
 ```toml
@@ -69,7 +71,8 @@ type = "openai"
 [professor.openai]
 # OpenAI key. required
 key = "key"
-# Used if you want to customize the explanation prompt.
+# Used if you want to customize the explanation prompt. 
+# (This will completly replace the default prompt)
 customPrompt = ""
 # Url for the API.
 url = ""

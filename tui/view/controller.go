@@ -2,11 +2,13 @@ package view
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/lian-rr/clio/command"
+	"github.com/lian-rr/clio/tui/view/msgs"
 )
 
 type controller interface {
@@ -19,6 +21,8 @@ type controller interface {
 	WriteExplanation(context.Context, uuid.UUID, string) error
 	ReadExplanation(context.Context, uuid.UUID) (string, error)
 	DeleteExplanation(context.Context, uuid.UUID) error
+	InsertUsage(context.Context, uuid.UUID, string) error
+	GetHistory(context.Context, uuid.UUID) (command.History, error)
 }
 
 func (m *Main) fechCommands() ([]command.Command, error) {
@@ -92,4 +96,35 @@ func (m *Main) removeCommand(cmd command.Command) error {
 	}
 
 	return nil
+}
+
+func (m *Main) saveUsage(commandID uuid.UUID, usage string) error {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*200)
+	defer cancel()
+
+	err := m.commandController.InsertUsage(ctx, commandID, usage)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Main) getHistory(commandID uuid.UUID) {
+	ctx, cancel := context.WithTimeout(m.ctx, time.Millisecond*500)
+	defer cancel()
+
+	history, err := m.commandController.GetHistory(ctx, commandID)
+	if err != nil {
+		m.logger.Error("error getting command history",
+			slog.Any("commandID", commandID),
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	msgs.PublishAsyncMsg(
+		m.activityChan,
+		msgs.HandleSetHistoryMsg(history),
+	)
 }

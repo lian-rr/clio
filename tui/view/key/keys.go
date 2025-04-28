@@ -16,10 +16,30 @@ type Map struct {
 	New              key.Binding
 	Edit             key.Binding
 	Explain          key.Binding
+	History          key.Binding
 	Copy             key.Binding
 	NextParamKey     key.Binding
 	PreviousParamKey key.Binding
 	Delete           key.Binding
+}
+
+func (km Map) ShortHelp() []key.Binding {
+	return []key.Binding{
+		km.Back,
+		km.Search,
+		km.DiscardSearch,
+		km.Compose,
+		km.New,
+		km.Edit,
+		km.Copy,
+		km.Explain,
+		km.Delete,
+		km.History,
+	}
+}
+
+func (km Map) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
 }
 
 // DefaultMap of key bindings.
@@ -54,6 +74,9 @@ var DefaultMap = Map{
 	Explain: key.NewBinding(
 		key.WithKeys("x"),
 		key.WithHelp("x", "explain")),
+	History: key.NewBinding(
+		key.WithKeys("y"),
+		key.WithHelp("y", "history")),
 	Copy: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "copy")),
@@ -68,22 +91,4 @@ var DefaultMap = Map{
 		key.WithKeys("shift+tab"),
 		key.WithHelp("shift+tab", "prev"),
 	),
-}
-
-func (km Map) ShortHelp() []key.Binding {
-	return []key.Binding{
-		km.Back,
-		km.Search,
-		km.DiscardSearch,
-		km.Compose,
-		km.New,
-		km.Edit,
-		km.Copy,
-		km.Explain,
-		km.Delete,
-	}
-}
-
-func (km Map) FullHelp() [][]key.Binding {
-	return [][]key.Binding{}
 }

@@ -39,6 +39,20 @@ const (
 			REFERENCES commands(id)
 			ON DELETE CASCADE
 	)`
+
+	HistoryTableQuery = `
+	CREATE TABLE IF NOT EXISTS history (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		command VARCHAR(16),
+		usage VARCHAR(255),
+		created_by TIMESTAMP,
+
+		CONSTRAINT fk_command
+			FOREIGN KEY (command)
+			REFERENCES commands(id)
+			ON DELETE CASCADE
+	)
+	`
 )
 
 // triggers
@@ -144,4 +158,15 @@ const (
 	WHERE command = ?`
 
 	DeleteExplanationQuery = `DELETE FROM notebook WHERE command = ?`
+
+	InsertUsageQuery = `
+	INSERT INTO
+		history(command, usage, created_by)
+	VALUES(?, ?, CURRENT_TIMESTAMP)`
+
+	GetHistoryForCommand = `
+	SELECT
+		usage, created_by
+	FROM history
+	WHERE command = ?`
 )

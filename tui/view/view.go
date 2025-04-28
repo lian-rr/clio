@@ -36,6 +36,7 @@ type Main struct {
 	executePanel  panel.Execute
 	editPanel     panel.Edit
 	explainPanel  panel.Explain
+	historyPanel  panel.History
 	help          help.Model
 
 	focus        focus
@@ -54,12 +55,12 @@ type professor interface {
 }
 
 // New returns a new main view.
-func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
+func New(ctx context.Context, controller controller, logger *slog.Logger, opts ...OptFunc) (*Main, error) {
 	keys := ckey.DefaultMap
 
 	m := Main{
 		ctx:               ctx,
-		commandController: manager,
+		commandController: controller,
 		activityChan:      make(chan msgs.AsyncMsg),
 		titleStyle:        style.Title,
 		keys:              keys,
@@ -69,6 +70,7 @@ func New(ctx context.Context, manager controller, logger *slog.Logger, opts ...O
 		executePanel:      panel.NewExecute(keys, logger),
 		editPanel:         panel.NewEdit(keys, logger),
 		explainPanel:      panel.NewExplain(keys, logger),
+		historyPanel:      panel.NewHistory(keys, logger),
 		help:              help.New(),
 		focus:             navigationFocus,
 		logger:            logger,
@@ -113,6 +115,13 @@ func (m *Main) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// handle outcome
 	case msgs.ExecuteCommandMsg:
 		m.logger.Debug("execute msg received")
+		if err := m.saveUsage(msg.CommandID, msg.Command); err != nil {
+			m.logger.Error("error storing command usage",
+				slog.Any("commandID", msg.CommandID),
+				slog.String("usage", msg.Command),
+				slog.Any("error", err),
+			)
+		}
 		m.Output = msg.Command
 		return m, tea.Quit
 	case msgs.NewCommandMsg:
@@ -140,6 +149,8 @@ func (m *Main) View() string {
 		help = m.help.View(&m.editPanel)
 	case explainFocus:
 		help = m.help.View(&m.explainPanel)
+	case historyFocus:
+		help = m.help.View(&m.historyPanel)
 	default:
 		help = m.help.View(&m.explorerPanel)
 	}
@@ -206,6 +217,7 @@ func (m *Main) updateComponentsDimensions(width, height int) {
 	m.executePanel.SetSize(w, h)
 	m.editPanel.SetSize(w, h)
 	m.explainPanel.SetSize(w, h)
+	m.historyPanel.SetSize(w, h)
 }
 
 func (m *Main) setContent(cmds []command.Command) error {
@@ -232,6 +244,8 @@ func (m *Main) initFocusedPanel() tea.Cmd {
 		return m.editPanel.Init()
 	case explainFocus:
 		return m.explainPanel.Init()
+	case historyFocus:
+		return m.historyPanel.Init()
 	}
 	return nil
 }
@@ -244,6 +258,8 @@ func (m *Main) getPanelView() string {
 		return m.editPanel.View()
 	case explainFocus:
 		return m.explainPanel.View()
+	case historyFocus:
+		return m.historyPanel.View()
 	default:
 		return m.detailPanel.View()
 	}

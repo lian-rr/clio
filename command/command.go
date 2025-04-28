@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -37,6 +38,17 @@ type (
 	Argument struct {
 		Name  string
 		Value string
+	}
+
+	// History contains the history of usage of the command.
+	History struct {
+		Usages []Usage
+	}
+
+	// Usage holds the information of a particular usage of the command.
+	Usage struct {
+		Command   string
+		Timestamp time.Time
 	}
 )
 

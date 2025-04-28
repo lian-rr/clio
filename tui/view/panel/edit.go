@@ -2,6 +2,7 @@ package panel
 
 import (
 	"log/slog"
+	"slices"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -218,7 +219,7 @@ func (p *Edit) SetCommand(mode EditMode, cmd *command.Command) error {
 	for _, input := range p.inputs {
 		input.Reset()
 	}
-	p.inputs = append([]*textinput.Model{}, p.inputs[:fixedInputs]...)
+	p.inputs = slices.Clone(p.inputs[:fixedInputs])
 	p.paramsContent = make(map[string][2]*textinput.Model)
 
 	p.mode = mode
@@ -305,7 +306,7 @@ func (p *Edit) Reset() {
 	p.confirmation.Reset()
 }
 
-func (p *Execute) ShortHelp() []key.Binding {
+func (p *Edit) ShortHelp() []key.Binding {
 	return []key.Binding{
 		p.keyMap.Back,
 		p.keyMap.NextParamKey,
